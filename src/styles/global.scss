@@ -1,0 +1,573 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg: #1a1a2e;
+  --color-surface: #16213e;
+  --color-primary: #e94560;
+  --color-text: #eaeaea;
+  --color-text-secondary: #9aa0b0;
+  --color-border: #2a2a4a;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  height: 100%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  &__content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+// Splash / loading
+.splash {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+}
+
+// Mode selection
+.mode-select {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 1.5rem calc(2rem + var(--safe-bottom));
+  gap: 2rem;
+
+  &__header {
+    text-align: center;
+  }
+
+  &__logo {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    letter-spacing: 0.04em;
+  }
+
+  &__tagline {
+    margin-top: 0.5rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  &__note {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+  }
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.75rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  text-align: center;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+
+  &:active {
+    transform: scale(0.98);
+    border-color: var(--color-primary);
+  }
+
+  &__emoji {
+    font-size: 2.5rem;
+  }
+
+  &__title {
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  &__desc {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+  }
+}
+
+// Generic page scaffold
+.page {
+  padding: 1.25rem;
+
+  &__header {
+    margin-bottom: 1rem;
+  }
+
+  &__title {
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
+  &__placeholder {
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+}
+
+// Bottom tab bar
+.bottom-tabs {
+  display: flex;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding-bottom: var(--safe-bottom);
+
+  &__item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.85rem 0;
+    text-decoration: none;
+    color: var(--color-text-secondary);
+    transition: color 0.1s ease;
+
+    &--active {
+      color: var(--color-primary);
+    }
+  }
+}
+
+// Empty state
+.empty {
+  text-align: center;
+  padding: 4rem 1rem;
+
+  &__title {
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+
+  &__desc {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+  }
+}
+
+// Member toolbar (search + filter in one row)
+.member-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+// Search box
+.search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+
+  &__icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: var(--color-text-secondary);
+    pointer-events: none;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 0.6rem 0.85rem 0.6rem 2.4rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+    color: var(--color-text);
+    font: inherit;
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    &::placeholder {
+      color: var(--color-text-secondary);
+      opacity: 0.6;
+    }
+  }
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  white-space: nowrap;
+
+  &--active {
+    border-color: var(--color-primary);
+    color: var(--color-text);
+    background: rgba(233, 69, 96, 0.15);
+  }
+}
+
+.badge {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 0.5rem;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+// Member list
+.member-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-bottom: 5rem; // clear the FAB
+}
+
+.member-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  text-align: left;
+
+  &:active {
+    border-color: var(--color-primary);
+  }
+
+  &__emoji {
+    font-size: 1.8rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  &__name {
+    font-weight: 600;
+  }
+
+  &__meta {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__memo {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    opacity: 0.85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+}
+
+// Floating action button
+.fab {
+  position: fixed;
+  right: 1.25rem;
+  bottom: calc(4.5rem + var(--safe-bottom));
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  &:active {
+    transform: scale(0.94);
+  }
+}
+
+// Bottom sheet
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  z-index: 50;
+  animation: fade-in 0.15s ease;
+}
+
+.sheet {
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--color-bg);
+  border-radius: 1.25rem 1.25rem 0 0;
+  padding: 0.5rem 1.25rem calc(1.5rem + var(--safe-bottom));
+  animation: slide-up 0.2s ease;
+
+  &__handle {
+    width: 2.5rem;
+    height: 0.25rem;
+    border-radius: 1rem;
+    background: var(--color-border);
+    margin: 0.5rem auto 0.75rem;
+  }
+
+  &__title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+// Form fields
+.field {
+  display: block;
+  margin-bottom: 1rem;
+
+  &__label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.4rem;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+    color: var(--color-text);
+    font: inherit;
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    &::placeholder {
+      color: var(--color-text-secondary);
+      opacity: 0.6;
+    }
+  }
+
+  &__textarea {
+    resize: vertical;
+    min-height: 3.5rem;
+  }
+}
+
+// Emoji avatar input (uses the OS emoji keyboard)
+.emoji-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+
+  &__hint {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.emoji-avatar {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  display: grid;
+  place-items: center;
+  font-size: 2.75rem;
+  line-height: 1;
+
+  &:active {
+    border-color: var(--color-primary);
+  }
+}
+
+// Segmented control
+.segmented {
+  display: flex;
+  gap: 0.4rem;
+
+  &__item {
+    flex: 1;
+    padding: 0.6rem 0;
+    text-align: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+    color: var(--color-text-secondary);
+
+    &--active {
+      border-color: var(--color-primary);
+      color: var(--color-text);
+      background: rgba(233, 69, 96, 0.15);
+    }
+  }
+}
+
+// Buttons
+.btn {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+
+  &:disabled {
+    opacity: 0.45;
+  }
+
+  &--primary {
+    background: var(--color-primary);
+    color: #fff;
+  }
+
+  &--danger {
+    background: var(--color-primary);
+    color: #fff;
+  }
+
+  &--ghost {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+  }
+
+  &--danger-ghost {
+    background: none;
+    color: var(--color-primary);
+  }
+}
+
+// Confirm dialog
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  z-index: 60;
+  animation: fade-in 0.15s ease;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 20rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+
+  &__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  &__message {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 1.25rem;
+    white-space: pre-line;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.6rem;
+
+    .btn {
+      flex: 1;
+    }
+  }
+}
+
+.member-form {
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+  }
+}
