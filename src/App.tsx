@@ -4,6 +4,7 @@ import { appConfigRepo } from './db/repositories/appConfig.ts'
 import type { Mode } from './db/types.ts'
 import { ModeSelect } from './pages/ModeSelect.tsx'
 import { AppLayout } from './components/AppLayout.tsx'
+import { ExerciseDetailPage } from './pages/ExerciseDetailPage.tsx'
 import { tabsForMode } from './navigation.tsx'
 
 type AppState =
@@ -43,8 +44,9 @@ function App() {
           {tabs.map((tab) => (
             <Route key={tab.path} path={tab.path} element={tab.element} />
           ))}
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
+        <Route path="/exercises/:id" element={<ExerciseDetailPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )

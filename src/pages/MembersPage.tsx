@@ -5,6 +5,7 @@ import type { Member } from '../db/types.ts'
 import { MemberFormSheet } from '../components/MemberFormSheet.tsx'
 import type { MemberFormData } from '../components/MemberFormSheet.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
+import { useToast } from '../components/Toast.tsx'
 import { PlusIcon, SearchIcon } from '../components/icons.tsx'
 import { formatDotDate } from '../utils/date.ts'
 
@@ -22,6 +23,7 @@ export function MembersPage() {
   const [showEnded, setShowEnded] = useState(false)
   const [query, setQuery] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null)
+  const showToast = useToast()
 
   const load = useCallback(async () => {
     const [members, sessions] = await Promise.all([
@@ -88,6 +90,7 @@ export function MembersPage() {
     await membersRepo.delete(deleteTarget.id)
     setDeleteTarget(null)
     setSheetOpen(false)
+    showToast('회원이 삭제되었습니다')
     await load()
   }
 

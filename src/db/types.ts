@@ -40,15 +40,13 @@ export type Equipment =
   | 'band'
   | 'etc'
 
-export type Grip = 'none' | 'overhand' | 'underhand' | 'neutral' | 'etc'
-
 export interface Exercise {
   id: string
   name: string
-  category: ExerciseCategory
-  equipment: Equipment
-  grip: Grip
-  photo: string | null
+  categories: ExerciseCategory[] // up to 3
+  equipment: Equipment | null
+  grip: string // free text (e.g. 오버핸드)
+  photos: string[] // Base64 data URLs; photos[0] is the representative photo
   description: string
   createdAt: string
   updatedAt: string

@@ -7,6 +7,7 @@ interface ConfirmDialogProps {
   confirmLabel?: string
   cancelLabel?: string
   danger?: boolean
+  hideCancel?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
@@ -18,6 +19,7 @@ export function ConfirmDialog({
   confirmLabel = '확인',
   cancelLabel = '취소',
   danger = false,
+  hideCancel = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -43,9 +45,11 @@ export function ConfirmDialog({
         <h2 className="dialog__title">{title}</h2>
         {message && <p className="dialog__message">{message}</p>}
         <div className="dialog__actions">
-          <button type="button" className="btn btn--ghost" onClick={onCancel}>
-            {cancelLabel}
-          </button>
+          {!hideCancel && (
+            <button type="button" className="btn btn--ghost" onClick={onCancel}>
+              {cancelLabel}
+            </button>
+          )}
           <button
             type="button"
             className={danger ? 'btn btn--danger' : 'btn btn--primary'}

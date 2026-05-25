@@ -42,7 +42,7 @@ export async function exportBackup({ includesPhotos = true }: { includesPhotos?:
 
   const exportedExercises = includesPhotos
     ? exercises
-    : exercises.map((ex) => ({ ...ex, photo: null }))
+    : exercises.map((ex) => ({ ...ex, photos: [] }))
 
   const backup: BackupFile = {
     app: 'repia',

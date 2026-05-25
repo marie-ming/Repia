@@ -8,6 +8,26 @@ function newId(): string {
   return 'ex_' + crypto.randomUUID()
 }
 
+// Backward-compat: older records used `photo` (single) and `category` (single).
+// Normalize them to `photos` / `categories` arrays on read.
+function normalize(
+  ex: Exercise & { photo?: string | null; category?: ExerciseCategory },
+): Exercise {
+  if (!Array.isArray(ex.photos)) {
+    ex.photos = ex.photo ? [ex.photo] : []
+  }
+  if ('photo' in ex) delete ex.photo
+
+  if (!Array.isArray(ex.categories)) {
+    ex.categories = ex.category ? [ex.category] : []
+  }
+  if ('category' in ex) delete ex.category
+
+  if (typeof ex.grip !== 'string') ex.grip = ''
+
+  return ex
+}
+
 // Counts how many sessions / logs / templates reference an exercise — deletion guard.
 async function countExerciseUsage(db: IDBPDatabase<RepiaDB>, exerciseId: string): Promise<number> {
   let count = 0
@@ -31,26 +51,19 @@ async function countExerciseUsage(db: IDBPDatabase<RepiaDB>, exerciseId: string)
 }
 
 export type ExerciseInput = Partial<Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>> &
-  Pick<Exercise, 'name' | 'category'>
+  Pick<Exercise, 'name'>
 
 export const exercisesRepo = {
-  async findAll({
-    sortBy = 'name',
-    category = null,
-  }: { sortBy?: 'name' | 'category'; category?: ExerciseCategory | null } = {}): Promise<
-    Exercise[]
-  > {
+  async findAll(): Promise<Exercise[]> {
     const db = await getDB()
-    if (category) {
-      return db.getAllFromIndex(STORES.EXERCISES, 'by_category', category)
-    }
-    const index = sortBy === 'category' ? 'by_category' : 'by_name'
-    return db.getAllFromIndex(STORES.EXERCISES, index)
+    const list = await db.getAllFromIndex(STORES.EXERCISES, 'by_name')
+    return list.map(normalize)
   },
 
   async findById(id: string): Promise<Exercise | undefined> {
     const db = await getDB()
-    return db.get(STORES.EXERCISES, id)
+    const ex = await db.get(STORES.EXERCISES, id)
+    return ex ? normalize(ex) : undefined
   },
 
   async create(data: ExerciseInput): Promise<Exercise> {
@@ -59,10 +72,10 @@ export const exercisesRepo = {
     const exercise: Exercise = {
       id: newId(),
       name: data.name,
-      category: data.category,
-      equipment: data.equipment ?? 'etc',
-      grip: data.grip ?? 'none',
-      photo: data.photo ?? null,
+      categories: data.categories ?? [],
+      equipment: data.equipment ?? null,
+      grip: data.grip ?? '',
+      photos: data.photos ?? [],
       description: data.description ?? '',
       createdAt: now,
       updatedAt: now,
@@ -75,7 +88,12 @@ export const exercisesRepo = {
     const db = await getDB()
     const existing = await db.get(STORES.EXERCISES, id)
     if (!existing) throw new Error(`Exercise ${id} not found`)
-    const updated: Exercise = { ...existing, ...changes, id, updatedAt: new Date().toISOString() }
+    const updated: Exercise = {
+      ...normalize(existing),
+      ...changes,
+      id,
+      updatedAt: new Date().toISOString(),
+    }
     await db.put(STORES.EXERCISES, updated)
     return updated
   },
