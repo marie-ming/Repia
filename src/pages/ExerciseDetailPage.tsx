@@ -66,7 +66,7 @@ export function ExerciseDetailPage() {
     return (
       <div className="detail">
         <header className="detail__bar">
-          <button type="button" className="detail__back" onClick={() => navigate('/exercises')} aria-label="뒤로">
+          <button type="button" className="detail__back" onClick={() => navigate(-1)} aria-label="뒤로">
             <ChevronLeftIcon />
           </button>
         </header>
@@ -80,7 +80,7 @@ export function ExerciseDetailPage() {
   return (
     <div className="detail">
       <header className="detail__bar">
-        <button type="button" className="detail__back" onClick={() => navigate('/exercises')} aria-label="뒤로">
+        <button type="button" className="detail__back" onClick={() => navigate(-1)} aria-label="뒤로">
           <ChevronLeftIcon />
         </button>
         <button type="button" className="detail__edit" onClick={() => setEditOpen(true)}>

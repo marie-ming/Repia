@@ -1,9 +1,21 @@
-import type { MemberStatus, ExerciseCategory, Equipment } from './db/types.ts'
+import type { MemberStatus, ExerciseCategory, Equipment, SessionStatus } from './db/types.ts'
 
 export const MEMBER_STATUS_OPTIONS: { value: MemberStatus; label: string }[] = [
   { value: 'active', label: '진행중' },
   { value: 'ended', label: '수업종료' },
 ]
+
+export const SESSION_STATUS_OPTIONS: { value: SessionStatus; label: string }[] = [
+  { value: 'reserved', label: '예약' },
+  { value: 'completed', label: '완료' },
+  { value: 'cancelled', label: '취소' },
+]
+
+export const SESSION_STATUS_LABELS: Record<SessionStatus, string> = {
+  reserved: '예약',
+  completed: '완료',
+  cancelled: '취소',
+}
 
 export const EXERCISE_CATEGORY_OPTIONS: { value: ExerciseCategory; label: string }[] = [
   { value: 'upper', label: '상체' },

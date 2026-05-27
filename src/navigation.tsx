@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Mode } from './db/types.ts'
 import { HomePage } from './pages/HomePage.tsx'
+import { TrainerHomePage } from './pages/TrainerHomePage.tsx'
 import { MembersPage } from './pages/MembersPage.tsx'
 import { ExercisesPage } from './pages/ExercisesPage.tsx'
 import { RoutinesPage } from './pages/RoutinesPage.tsx'
@@ -21,7 +22,7 @@ export interface TabItem {
 }
 
 const trainerTabs: TabItem[] = [
-  { path: '/', label: '홈', icon: <HomeIcon />, element: <HomePage /> },
+  { path: '/', label: '홈', icon: <HomeIcon />, element: <TrainerHomePage /> },
   { path: '/members', label: '회원', icon: <UsersIcon />, element: <MembersPage /> },
   { path: '/exercises', label: '운동', icon: <DumbbellIcon />, element: <ExercisesPage /> },
   { path: '/settings', label: '설정', icon: <SettingsIcon />, element: <SettingsPage /> },
