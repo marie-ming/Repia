@@ -1,5 +1,37 @@
-import { PagePlaceholder } from '../components/PagePlaceholder.tsx'
+import { useNavigate } from 'react-router-dom'
+import { ChevronRightIcon } from '../components/icons.tsx'
+
+interface MenuItem {
+  label: string
+  desc?: string
+  to: string
+}
+
+const ITEMS: MenuItem[] = [
+  { label: '데이터 관리', desc: '백업 · 복원', to: '/settings/data' },
+]
 
 export function SettingsPage() {
-  return <PagePlaceholder title="설정" description="백업/복원 등 설정이 여기에 표시됩니다." />
+  const navigate = useNavigate()
+  return (
+    <div className="page">
+      <header className="page__header">
+        <h1 className="page__title">설정</h1>
+      </header>
+
+      <ul className="menu-list">
+        {ITEMS.map((it) => (
+          <li key={it.to}>
+            <button type="button" className="menu-list__item" onClick={() => navigate(it.to)}>
+              <span className="menu-list__body">
+                <span className="menu-list__label">{it.label}</span>
+                {it.desc && <span className="menu-list__desc">{it.desc}</span>}
+              </span>
+              <ChevronRightIcon className="menu-list__chevron" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
