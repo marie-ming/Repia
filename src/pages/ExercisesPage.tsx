@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
-import type { Exercise, ExerciseCategory } from '../db/types.ts'
+import type { Exercise, ExerciseCategory, Equipment } from '../db/types.ts'
 import { ExerciseFormSheet } from '../components/ExerciseFormSheet.tsx'
 import type { ExerciseFormData } from '../components/ExerciseFormSheet.tsx'
 import { PlusIcon, SearchIcon } from '../components/icons.tsx'
-import { EXERCISE_CATEGORY_OPTIONS, EXERCISE_CATEGORY_LABELS, EQUIPMENT_LABELS } from '../constants.ts'
+import {
+  EXERCISE_CATEGORY_OPTIONS,
+  EXERCISE_CATEGORY_LABELS,
+  EQUIPMENT_OPTIONS,
+  EQUIPMENT_LABELS,
+} from '../constants.ts'
 
 type CategoryFilter = ExerciseCategory | 'all'
+type EquipmentFilter = Equipment | 'all'
 
 export function ExercisesPage() {
   const navigate = useNavigate()
@@ -15,6 +21,7 @@ export function ExercisesPage() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<CategoryFilter>('all')
+  const [equipment, setEquipment] = useState<EquipmentFilter>('all')
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const load = useCallback(async () => {
@@ -31,10 +38,11 @@ export function ExercisesPage() {
     const q = query.trim().toLowerCase()
     return exercises.filter((ex) => {
       if (category !== 'all' && !ex.categories.includes(category)) return false
+      if (equipment !== 'all' && ex.equipment !== equipment) return false
       if (q && !ex.name.toLowerCase().includes(q)) return false
       return true
     })
-  }, [exercises, query, category])
+  }, [exercises, query, category, equipment])
 
   async function handleCreate(data: ExerciseFormData) {
     await exercisesRepo.create(data)
@@ -81,6 +89,25 @@ export function ExercisesPage() {
               </button>
             ))}
           </div>
+          <div className="chips chips--scroll">
+            <button
+              type="button"
+              className={equipment === 'all' ? 'chip chip--active' : 'chip'}
+              onClick={() => setEquipment('all')}
+            >
+              전체
+            </button>
+            {EQUIPMENT_OPTIONS.map((opt) => (
+              <button
+                type="button"
+                key={opt.value}
+                className={equipment === opt.value ? 'chip chip--active' : 'chip'}
+                onClick={() => setEquipment(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </>
       )}
 
@@ -94,7 +121,7 @@ export function ExercisesPage() {
           <p className="empty__desc">
             {exercises.length === 0
               ? '아래 + 버튼으로 첫 운동을 추가해보세요.'
-              : '검색어나 카테고리를 바꿔보세요.'}
+              : '검색어나 필터를 바꿔보세요.'}
           </p>
         </div>
       ) : (

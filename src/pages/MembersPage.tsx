@@ -1,28 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { membersRepo } from '../db/repositories/members.ts'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import type { Member } from '../db/types.ts'
 import { MemberFormSheet } from '../components/MemberFormSheet.tsx'
 import type { MemberFormData } from '../components/MemberFormSheet.tsx'
-import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { PlusIcon, SearchIcon } from '../components/icons.tsx'
-import { formatDotDate } from '../utils/date.ts'
 
 interface MemberRow {
   member: Member
-  sessionCount: number
-  lastDate: string | null
+  reserved: number
+  completed: number
 }
 
 export function MembersPage() {
+  const navigate = useNavigate()
   const [rows, setRows] = useState<MemberRow[]>([])
   const [loading, setLoading] = useState(true)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [editing, setEditing] = useState<Member | null>(null)
   const [showEnded, setShowEnded] = useState(false)
   const [query, setQuery] = useState('')
-  const [deleteTarget, setDeleteTarget] = useState<Member | null>(null)
   const showToast = useToast()
 
   const load = useCallback(async () => {
@@ -31,20 +29,20 @@ export function MembersPage() {
       sessionsRepo.findAll(),
     ])
 
-    const stats = new Map<string, { count: number; last: string | null }>()
+    const stats = new Map<string, { reserved: number; completed: number }>()
     for (const s of sessions) {
-      if (s.status !== 'completed') continue
-      const cur = stats.get(s.memberId) ?? { count: 0, last: null }
-      cur.count++
-      if (!cur.last || s.date > cur.last) cur.last = s.date
+      if (s.status !== 'reserved' && s.status !== 'completed') continue
+      const cur = stats.get(s.memberId) ?? { reserved: 0, completed: 0 }
+      if (s.status === 'reserved') cur.reserved++
+      else cur.completed++
       stats.set(s.memberId, cur)
     }
 
     setRows(
       members.map((member) => ({
         member,
-        sessionCount: stats.get(member.id)?.count ?? 0,
-        lastDate: stats.get(member.id)?.last ?? null,
+        reserved: stats.get(member.id)?.reserved ?? 0,
+        completed: stats.get(member.id)?.completed ?? 0,
       })),
     )
     setLoading(false)
@@ -65,33 +63,18 @@ export function MembersPage() {
     })
   }, [rows, showEnded, query])
 
-  function openCreate() {
-    setEditing(null)
-    setSheetOpen(true)
-  }
-
-  function openEdit(member: Member) {
-    setEditing(member)
-    setSheetOpen(true)
-  }
-
-  async function handleSave(data: MemberFormData) {
-    if (editing) {
-      await membersRepo.update(editing.id, data)
-    } else {
-      await membersRepo.create(data)
-    }
+  async function handleCreate(data: MemberFormData) {
+    await membersRepo.create(data)
     setSheetOpen(false)
+    showToast('회원이 추가되었습니다')
     await load()
   }
 
-  async function confirmDelete() {
-    if (!deleteTarget) return
-    await membersRepo.delete(deleteTarget.id)
-    setDeleteTarget(null)
-    setSheetOpen(false)
-    showToast('회원이 삭제되었습니다')
-    await load()
+  function metaParts(r: MemberRow): string[] {
+    const parts: string[] = []
+    if (r.reserved > 0) parts.push(`예정 ${r.reserved}`)
+    if (r.completed > 0) parts.push(`완료 ${r.completed}`)
+    return parts
   }
 
   return (
@@ -145,46 +128,44 @@ export function MembersPage() {
         </div>
       ) : (
         <ul className="member-list">
-          {visibleRows.map(({ member, sessionCount, lastDate }) => (
-            <li key={member.id}>
-              <button type="button" className="member-card" onClick={() => openEdit(member)}>
-                <span className="member-card__emoji">{member.emoji}</span>
-                <span className="member-card__info">
-                  <span className="member-card__name-row">
-                    <span className="member-card__name">{member.name}</span>
-                    {member.status === 'ended' && <span className="badge">수업종료</span>}
+          {visibleRows.map((row) => {
+            const { member } = row
+            const parts = metaParts(row)
+            return (
+              <li key={member.id}>
+                <button
+                  type="button"
+                  className="member-card"
+                  onClick={() => navigate(`/members/${member.id}`)}
+                >
+                  <span className="member-card__emoji">{member.emoji}</span>
+                  <span className="member-card__info">
+                    <span className="member-card__name-row">
+                      <span className="member-card__name">{member.name}</span>
+                      {member.status === 'ended' && <span className="badge">수업종료</span>}
+                      {parts.length > 0 && (
+                        <span className="member-card__meta">{parts.join(' · ')}</span>
+                      )}
+                    </span>
+                    {member.memo && <span className="member-card__memo">{member.memo}</span>}
                   </span>
-                  <span className="member-card__meta">
-                    총 {sessionCount}회 · 마지막 {lastDate ? formatDotDate(lastDate) : '수업 없음'}
-                  </span>
-                  {member.memo && <span className="member-card__memo">{member.memo}</span>}
-                </span>
-              </button>
-            </li>
-          ))}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       )}
 
-      <button type="button" className="fab" onClick={openCreate} aria-label="회원 추가">
+      <button type="button" className="fab" onClick={() => setSheetOpen(true)} aria-label="회원 추가">
         <PlusIcon />
       </button>
 
       <MemberFormSheet
         open={sheetOpen}
-        member={editing}
+        member={null}
         onClose={() => setSheetOpen(false)}
-        onSave={handleSave}
-        onDelete={(member) => setDeleteTarget(member)}
-      />
-
-      <ConfirmDialog
-        open={!!deleteTarget}
-        title={`${deleteTarget?.name ?? ''} 회원을 삭제할까요?`}
-        message="지난 수업 기록은 그대로 유지됩니다."
-        confirmLabel="삭제"
-        danger
-        onConfirm={confirmDelete}
-        onCancel={() => setDeleteTarget(null)}
+        onSave={handleCreate}
+        onDelete={() => {}}
       />
     </div>
   )

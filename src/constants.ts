@@ -23,15 +23,19 @@ export const EXERCISE_CATEGORY_OPTIONS: { value: ExerciseCategory; label: string
   { value: 'back', label: '등' },
   { value: 'shoulder', label: '어깨' },
   { value: 'chest', label: '가슴' },
-  { value: 'arm', label: '팔' },
+  { value: 'biceps', label: '이두' },
+  { value: 'triceps', label: '삼두' },
+  { value: 'forearm', label: '전완' },
   { value: 'core', label: '코어' },
   { value: 'full', label: '전신' },
   { value: 'cardio', label: '유산소' },
 ]
 
-export const EXERCISE_CATEGORY_LABELS = Object.fromEntries(
-  EXERCISE_CATEGORY_OPTIONS.map((o) => [o.value, o.label]),
-) as Record<ExerciseCategory, string>
+// Includes legacy 'arm' for display fallback of existing records.
+export const EXERCISE_CATEGORY_LABELS: Record<ExerciseCategory, string> = {
+  ...Object.fromEntries(EXERCISE_CATEGORY_OPTIONS.map((o) => [o.value, o.label])),
+  arm: '팔',
+} as Record<ExerciseCategory, string>
 
 export const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
   { value: 'bodyweight', label: '맨몸' },

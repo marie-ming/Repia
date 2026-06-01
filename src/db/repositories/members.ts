@@ -30,7 +30,6 @@ export const membersRepo = {
       emoji: data.emoji ?? '🏋️',
       name: data.name,
       phone: data.phone ?? '',
-      birthYear: data.birthYear ?? null,
       status: data.status ?? 'active',
       memo: data.memo ?? '',
       registeredAt: data.registeredAt ?? todayISODate(),

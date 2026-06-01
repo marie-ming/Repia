@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Session, SessionStatus, RoutineExercise, Member, Exercise } from '../db/types.ts'
 import type { SessionInput } from '../db/repositories/sessions.ts'
 import { membersRepo } from '../db/repositories/members.ts'
@@ -6,6 +6,7 @@ import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { BottomSheet } from './BottomSheet.tsx'
 import { Select } from './Select.tsx'
 import { ExercisePicker } from './ExercisePicker.tsx'
+import { ConfirmDialog } from './ConfirmDialog.tsx'
 import { SESSION_STATUS_OPTIONS } from '../constants.ts'
 
 interface SessionFormData {
@@ -46,6 +47,8 @@ export function SessionFormSheet({
   onDelete,
 }: SessionFormSheetProps) {
   const [form, setForm] = useState<SessionFormData>(() => emptyForm(defaultDate))
+  const initRef = useRef<SessionFormData>(emptyForm(defaultDate))
+  const [confirmClose, setConfirmClose] = useState(false)
   const [members, setMembers] = useState<Member[]>([])
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -58,21 +61,33 @@ export function SessionFormSheet({
         setExercises(e)
       },
     )
-    setForm(
-      session
-        ? {
-            memberId: session.memberId,
-            date: session.date,
-            time: session.time,
-            status: session.status,
-            routine: session.routine,
-            memo: session.memo,
-          }
-        : emptyForm(defaultDate),
-    )
+    const initial: SessionFormData = session
+      ? {
+          memberId: session.memberId,
+          date: session.date,
+          time: session.time,
+          status: session.status,
+          routine: session.routine,
+          memo: session.memo,
+        }
+      : emptyForm(defaultDate)
+    setForm(initial)
+    initRef.current = initial
+    setConfirmClose(false)
   }, [open, session, defaultDate])
 
   const canSave = !!form.memberId && !!form.date
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
+
+  function handleAttemptClose() {
+    if (isDirty) setConfirmClose(true)
+    else onClose()
+  }
+
+  function discardChanges() {
+    setConfirmClose(false)
+    onClose()
+  }
 
   function exerciseName(id: string): string {
     return exercises.find((e) => e.id === id)?.name ?? '(삭제된 운동)'
@@ -140,7 +155,7 @@ export function SessionFormSheet({
   const memberOptions = members.map((m) => ({ value: m.id, label: `${m.emoji} ${m.name}` }))
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={session ? '수업 수정' : '수업 추가'}>
+    <BottomSheet open={open} onClose={handleAttemptClose} title={session ? '수업 수정' : '수업 추가'}>
       <form className="member-form" onSubmit={handleSubmit}>
         <div className="field">
           <span className="field__label">회원 *</span>
@@ -293,6 +308,17 @@ export function SessionFormSheet({
         excludeIds={form.routine.map((r) => r.exerciseId)}
         onClose={() => setPickerOpen(false)}
         onConfirm={handlePickerConfirm}
+      />
+
+      <ConfirmDialog
+        open={confirmClose}
+        title="저장하지 않은 변경사항이 있습니다"
+        message="닫으면 변경사항이 사라집니다."
+        confirmLabel="닫기"
+        cancelLabel="계속 작성"
+        danger
+        onConfirm={discardChanges}
+        onCancel={() => setConfirmClose(false)}
       />
     </BottomSheet>
   )

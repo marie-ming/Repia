@@ -12,7 +12,6 @@ export interface Member {
   emoji: string
   name: string
   phone: string
-  birthYear: number | null
   status: MemberStatus
   memo: string
   registeredAt: string // YYYY-MM-DD, user-editable enrollment date
@@ -26,7 +25,10 @@ export type ExerciseCategory =
   | 'back'
   | 'shoulder'
   | 'chest'
-  | 'arm'
+  | 'biceps'
+  | 'triceps'
+  | 'forearm'
+  | 'arm' // legacy — split into biceps/triceps/forearm
   | 'core'
   | 'full'
   | 'cardio'

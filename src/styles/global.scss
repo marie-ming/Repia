@@ -191,7 +191,7 @@ button {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.4rem;
 }
 
 // Search box
@@ -202,23 +202,24 @@ button {
 
   &__icon {
     position: absolute;
-    left: 0.75rem;
+    left: 0.6rem;
     top: 50%;
     transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
+    width: 14px;
+    height: 14px;
     color: var(--color-text-secondary);
     pointer-events: none;
   }
 
   &__input {
     width: 100%;
-    padding: 0.6rem 0.85rem 0.6rem 2.4rem;
+    padding: 0.3rem 0.65rem 0.3rem 1.85rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 0.6rem;
+    border-radius: 0.45rem;
     color: var(--color-text);
     font: inherit;
+    font-size: 0.85rem;
 
     &:focus {
       outline: none;
@@ -242,25 +243,29 @@ button {
 
   &--scroll {
     overflow-x: auto;
-    margin-bottom: 1rem;
-    padding-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
+    padding-bottom: 0.15rem;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
 
     &::-webkit-scrollbar {
       display: none;
     }
+
+    &:last-of-type {
+      margin-bottom: 0.85rem;
+    }
   }
 }
 
 .chip {
   flex-shrink: 0;
-  padding: 0.55rem 0.9rem;
-  border-radius: 0.6rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 0.45rem;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   white-space: nowrap;
 
   &--active {
@@ -288,19 +293,19 @@ button {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.4rem;
   padding-bottom: 5rem; // clear the FAB
 }
 
 .member-card {
   width: 100%;
   display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 0.9rem 1rem;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.85rem;
+  border-radius: 0.65rem;
   text-align: left;
 
   &:active {
@@ -308,15 +313,16 @@ button {
   }
 
   &__emoji {
-    font-size: 1.8rem;
-    line-height: 1;
+    font-size: 0.95rem;
+    line-height: 1.5;
     flex-shrink: 0;
+    opacity: 0.85;
   }
 
   &__info {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.25rem;
     min-width: 0;
     flex: 1;
   }
@@ -329,15 +335,18 @@ button {
 
   &__name {
     font-weight: 600;
+    font-size: 0.95rem;
   }
 
   &__meta {
-    font-size: 0.8rem;
+    margin-left: auto;
+    font-size: 0.75rem;
     color: var(--color-text-secondary);
+    flex-shrink: 0;
   }
 
   &__memo {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--color-text-secondary);
     opacity: 0.85;
     overflow: hidden;
@@ -571,6 +580,73 @@ button {
   &__when {
     font-size: 0.95rem;
     color: var(--color-text-secondary);
+  }
+}
+
+// Member detail
+.member-detail {
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+  }
+
+  &__emoji {
+    font-size: 1.4rem;
+    line-height: 1.5;
+    opacity: 0.85;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    font-size: 1.4rem;
+    line-height: 1.5;
+    font-weight: 700;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.member-stats {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+// Session history list (member detail)
+.history-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.history-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.7rem;
+  text-align: left;
+
+  &--cancelled {
+    opacity: 0.5;
+  }
+
+  &__date {
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  &__time {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-secondary);
+    flex: 1;
   }
 }
 
@@ -881,8 +957,8 @@ button {
   position: fixed;
   right: 1.25rem;
   bottom: calc(4.5rem + var(--safe-bottom));
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   background: var(--color-primary);
   color: #fff;
@@ -1092,10 +1168,9 @@ button {
 .emoji-field {
   position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
 
   &__hint {
     font-size: 0.8rem;
@@ -1112,15 +1187,16 @@ button {
 }
 
 .emoji-avatar {
-  width: 5rem;
-  height: 5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   display: grid;
   place-items: center;
-  font-size: 2.75rem;
+  font-size: 1.5rem;
   line-height: 1;
+  opacity: 0.9;
 
   &:active {
     border-color: var(--color-primary);

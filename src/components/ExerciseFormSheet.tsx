@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Exercise, ExerciseCategory, Equipment } from '../db/types.ts'
 import { BottomSheet } from './BottomSheet.tsx'
 import { Select } from './Select.tsx'
+import { ConfirmDialog } from './ConfirmDialog.tsx'
 import { EXERCISE_CATEGORY_OPTIONS, EQUIPMENT_OPTIONS } from '../constants.ts'
 import { fileToResizedDataURL } from '../utils/image.ts'
 
@@ -43,25 +44,39 @@ export function ExerciseFormSheet({
   onDelete,
 }: ExerciseFormSheetProps) {
   const [form, setForm] = useState<ExerciseFormData>(emptyForm)
+  const initRef = useRef<ExerciseFormData>(emptyForm())
+  const [confirmClose, setConfirmClose] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!open) return
-    setForm(
-      exercise
-        ? {
-            photos: exercise.photos,
-            name: exercise.name,
-            categories: exercise.categories,
-            equipment: exercise.equipment,
-            grip: exercise.grip,
-            description: exercise.description,
-          }
-        : emptyForm(),
-    )
+    const initial: ExerciseFormData = exercise
+      ? {
+          photos: exercise.photos,
+          name: exercise.name,
+          categories: exercise.categories,
+          equipment: exercise.equipment,
+          grip: exercise.grip,
+          description: exercise.description,
+        }
+      : emptyForm()
+    setForm(initial)
+    initRef.current = initial
+    setConfirmClose(false)
   }, [open, exercise])
 
   const canSave = form.name.trim().length > 0
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
+
+  function handleAttemptClose() {
+    if (isDirty) setConfirmClose(true)
+    else onClose()
+  }
+
+  function discardChanges() {
+    setConfirmClose(false)
+    onClose()
+  }
 
   function toggleCategory(value: ExerciseCategory) {
     setForm((f) => {
@@ -107,7 +122,7 @@ export function ExerciseFormSheet({
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={exercise ? '운동 수정' : '운동 추가'}>
+    <BottomSheet open={open} onClose={handleAttemptClose} title={exercise ? '운동 수정' : '운동 추가'}>
       <form className="exercise-form" onSubmit={handleSubmit}>
         <div className="field">
           <span className="field__label">사진 (첫 장이 대표)</span>
@@ -242,6 +257,17 @@ export function ExerciseFormSheet({
           )}
         </div>
       </form>
+
+      <ConfirmDialog
+        open={confirmClose}
+        title="저장하지 않은 변경사항이 있습니다"
+        message="닫으면 변경사항이 사라집니다."
+        confirmLabel="닫기"
+        cancelLabel="계속 작성"
+        danger
+        onConfirm={discardChanges}
+        onCancel={() => setConfirmClose(false)}
+      />
     </BottomSheet>
   )
 }
