@@ -74,80 +74,31 @@ button {
   height: 100%;
   display: grid;
   place-items: center;
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--color-primary);
-}
+  background: var(--color-bg);
 
-// Mode selection
-.mode-select {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 2rem 1.5rem calc(2rem + var(--safe-bottom));
-  gap: 2rem;
-
-  &__header {
+  &__inner {
     text-align: center;
+    animation: splash-fade 0.6s ease both;
   }
 
   &__logo {
-    font-size: 2.5rem;
+    font-size: 2.75rem;
     font-weight: 800;
     color: var(--color-primary);
     letter-spacing: 0.04em;
   }
 
   &__tagline {
-    margin-top: 0.5rem;
+    margin-top: 0.6rem;
     color: var(--color-text-secondary);
-  }
-
-  &__options {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  &__note {
-    text-align: center;
-    font-size: 0.8rem;
-    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
   }
 }
 
-.mode-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 1.75rem 1rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 1rem;
-  text-align: center;
-  transition: transform 0.1s ease, border-color 0.1s ease;
-
-  &:active {
-    transform: scale(0.98);
-    border-color: var(--color-primary);
-  }
-
-  &__emoji {
-    font-size: 2.5rem;
-  }
-
-  &__title {
-    font-size: 1.15rem;
-    font-weight: 700;
-  }
-
-  &__desc {
-    font-size: 0.85rem;
-    color: var(--color-text-secondary);
-  }
+@keyframes splash-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 // Generic page scaffold

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { appConfigRepo } from './db/repositories/appConfig.ts'
 import type { Mode } from './db/types.ts'
-import { ModeSelect } from './pages/ModeSelect.tsx'
 import { AppLayout } from './components/AppLayout.tsx'
 import { ExerciseDetailPage } from './pages/ExerciseDetailPage.tsx'
 import { SessionDetailPage } from './pages/SessionDetailPage.tsx'
@@ -10,29 +9,33 @@ import { DataSettingsPage } from './pages/DataSettingsPage.tsx'
 import { MemberDetailPage } from './pages/MemberDetailPage.tsx'
 import { ExerciseFormPage } from './pages/ExerciseFormPage.tsx'
 import { SessionFormPage } from './pages/SessionFormPage.tsx'
+import { Splash } from './components/Splash.tsx'
 import { ModeContext } from './components/ModeContext.tsx'
 import { tabsForMode } from './navigation.tsx'
 
 type AppState =
   | { status: 'loading' }
-  | { status: 'needsMode' }
   | { status: 'ready'; mode: Mode }
+
+const DEFAULT_MODE: Mode = 'personal'
+const SPLASH_MIN_MS = 600
 
 function App() {
   const [state, setState] = useState<AppState>({ status: 'loading' })
 
   useEffect(() => {
-    appConfigRepo.getMode().then((mode) => {
-      setState(mode ? { status: 'ready', mode } : { status: 'needsMode' })
+    const minDelay = new Promise<void>((r) => setTimeout(r, SPLASH_MIN_MS))
+    Promise.all([appConfigRepo.getMode(), minDelay]).then(async ([stored]) => {
+      let mode = stored
+      if (!mode) {
+        await appConfigRepo.setMode(DEFAULT_MODE)
+        await appConfigRepo.set('installedAt', new Date().toISOString())
+        await appConfigRepo.set('schemaVersion', 1)
+        mode = DEFAULT_MODE
+      }
+      setState({ status: 'ready', mode })
     })
   }, [])
-
-  async function handleSelectMode(mode: Mode) {
-    await appConfigRepo.setMode(mode)
-    await appConfigRepo.set('installedAt', new Date().toISOString())
-    await appConfigRepo.set('schemaVersion', 1)
-    setState({ status: 'ready', mode })
-  }
 
   const changeMode = useCallback(async (next: Mode) => {
     await appConfigRepo.setMode(next)
@@ -46,11 +49,7 @@ function App() {
   )
 
   if (state.status === 'loading') {
-    return <div className="splash">Repia</div>
-  }
-
-  if (state.status === 'needsMode') {
-    return <ModeSelect onSelect={handleSelectMode} />
+    return <Splash />
   }
 
   const tabs = tabsForMode(state.mode)
