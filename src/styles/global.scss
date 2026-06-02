@@ -623,12 +623,22 @@ button {
     flex: 1;
     min-width: 0;
   }
+
+  &__sessions-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+
+    .detail__section {
+      margin: 0;
+    }
+  }
 }
 
 .member-stats {
   font-size: 0.85rem;
   color: var(--color-text-secondary);
-  margin-bottom: 0.75rem;
 }
 
 // Session history list (member detail)
@@ -656,14 +666,15 @@ button {
   }
 
   &__date {
-    font-weight: 600;
     flex-shrink: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
 
   &__time {
+    flex: 1;
     font-variant-numeric: tabular-nums;
     color: var(--color-text-secondary);
-    flex: 1;
   }
 }
 

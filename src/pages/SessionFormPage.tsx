@@ -186,7 +186,10 @@ export function SessionFormPage() {
     )
   }
 
-  const memberOptions = members.map((m) => ({ value: m.id, label: m.name }))
+  // 수업종료 회원은 숨김. 단, 수정 모드에서 이미 선택된 회원이 종료된 경우 그 옵션은 유지.
+  const memberOptions = members
+    .filter((m) => m.status !== 'ended' || m.id === form.memberId)
+    .map((m) => ({ value: m.id, label: m.name }))
 
   return (
     <div className="detail">

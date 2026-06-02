@@ -13,6 +13,15 @@ export function formatDotDate(date: string | null): string {
   return date.replaceAll('-', '.')
 }
 
+// "2026-06-04" -> "26.06.04 수"
+export function formatShortDateWithWeekday(date: string): string {
+  const d = parseISODate(date)
+  const yy = String(d.getFullYear()).slice(-2)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yy}.${mm}.${dd} ${WEEKDAY_LABELS[d.getDay()]}`
+}
+
 // Date -> local YYYY-MM-DD
 export function toISODate(date: Date): string {
   const y = date.getFullYear()

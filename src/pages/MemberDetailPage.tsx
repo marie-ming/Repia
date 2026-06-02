@@ -9,7 +9,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon } from '../components/icons.tsx'
 import { SESSION_STATUS_LABELS } from '../constants.ts'
-import { formatDotDate } from '../utils/date.ts'
+import { formatDotDate, formatShortDateWithWeekday } from '../utils/date.ts'
 
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -125,19 +125,21 @@ export function MemberDetailPage() {
           )}
         </dl>
 
-        <h2 className="detail__section">수업</h2>
-        {stats.reserved === 0 && stats.completed === 0 ? (
-          <p className="info-list__empty">수업 기록 없음</p>
-        ) : (
-          <p className="member-stats">
-            {[
-              stats.reserved > 0 ? `예정 ${stats.reserved}` : null,
-              stats.completed > 0 ? `완료 ${stats.completed}` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-        )}
+        <div className="member-detail__sessions-head">
+          <h2 className="detail__section">수업</h2>
+          {stats.reserved === 0 && stats.completed === 0 ? (
+            <span className="info-list__empty">수업 기록 없음</span>
+          ) : (
+            <span className="member-stats">
+              {[
+                stats.reserved > 0 ? `예정 ${stats.reserved}` : null,
+                stats.completed > 0 ? `완료 ${stats.completed}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          )}
+        </div>
 
         {stats.recent.length > 0 && (
           <ul className="history-list">
@@ -152,8 +154,8 @@ export function MemberDetailPage() {
                   }
                   onClick={() => navigate(`/sessions/${s.id}`)}
                 >
-                  <span className="history-item__date">{formatDotDate(s.date)}</span>
-                  <span className="history-item__time">{s.time || '–'}</span>
+                  <span className="history-item__date">{formatShortDateWithWeekday(s.date)}</span>
+                  {s.time && <span className="history-item__time">{s.time}</span>}
                   <span className={`session-badge session-badge--${s.status}`}>
                     {SESSION_STATUS_LABELS[s.status]}
                   </span>

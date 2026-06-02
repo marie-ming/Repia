@@ -84,7 +84,7 @@ describe('MemberDetailPage', () => {
       status: 'reserved',
     })
     await renderWithMember(member)
-    await userEvent.click((await screen.findAllByText('2026.06.10'))[0])
+    await userEvent.click(await screen.findByText('26.06.10 수'))
     expect(screen.getByTestId('loc')).toHaveTextContent(`/sessions/${s.id}`)
   })
 
