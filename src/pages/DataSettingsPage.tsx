@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { exportBackup, importBackup } from '../db/backup.ts'
+import { exportBackup, importBackup, resetAllData } from '../db/backup.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon } from '../components/icons.tsx'
@@ -12,6 +12,7 @@ export function DataSettingsPage() {
   const [includesPhotos, setIncludesPhotos] = useState(true)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [confirmReset, setConfirmReset] = useState(false)
   const [busy, setBusy] = useState(false)
 
   async function handleExport() {
@@ -30,6 +31,20 @@ export function DataSettingsPage() {
     const file = e.target.files?.[0]
     if (file) setPendingFile(file)
     e.target.value = ''
+  }
+
+  async function handleReset() {
+    setConfirmReset(false)
+    try {
+      setBusy(true)
+      await resetAllData()
+      showToast('모든 데이터가 초기화되었습니다')
+      setTimeout(() => window.location.reload(), 800)
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : '초기화에 실패했습니다.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function confirmImport() {
@@ -65,7 +80,7 @@ export function DataSettingsPage() {
         <section className="settings-section">
           <h2 className="settings-section__title">데이터 백업</h2>
           <p className="settings-section__desc">
-            모든 회원·운동·수업·루틴을 JSON 파일로 내보냅니다.
+            모든 데이터를 JSON 파일로 내보냅니다.
           </p>
           <label className="settings-toggle">
             <input
@@ -106,6 +121,21 @@ export function DataSettingsPage() {
             onChange={handleFileChange}
           />
         </section>
+
+        <section className="settings-section">
+          <h2 className="settings-section__title">설정 및 데이터 초기화</h2>
+          <p className="settings-section__desc settings-section__desc--warn">
+            모든 데이터와 모드 설정이 삭제되어 최초 상태로 돌아갑니다.
+          </p>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => setConfirmReset(true)}
+            disabled={busy}
+          >
+            초기화
+          </button>
+        </section>
       </div>
 
       <ConfirmDialog
@@ -113,13 +143,23 @@ export function DataSettingsPage() {
         title="기존 데이터를 모두 덮어쓸까요?"
         message={
           pendingFile
-            ? `'${pendingFile.name}'\n현재 회원·운동·수업·루틴이 모두 삭제됩니다.`
+            ? `'${pendingFile.name}'\n현재 모든 데이터가 삭제됩니다.`
             : ''
         }
         confirmLabel="복원"
         danger
         onConfirm={confirmImport}
         onCancel={() => setPendingFile(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmReset}
+        title="정말 초기화할까요?"
+        message="모든 회원·운동·수업·루틴·기록과 모드 설정이 삭제됩니다. 복구할 수 없습니다."
+        confirmLabel="초기화"
+        danger
+        onConfirm={handleReset}
+        onCancel={() => setConfirmReset(false)}
       />
 
       <ConfirmDialog

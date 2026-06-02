@@ -125,3 +125,28 @@ export async function importBackup(file: File): Promise<{ success: true; include
 
   return { success: true, includesPhotos }
 }
+
+// 모든 IndexedDB 데이터를 삭제한다. 모드 설정 포함 — 다음 진입 시 초기 상태로 시작.
+export async function resetAllData(): Promise<void> {
+  await withTransaction(
+    [
+      STORES.APP_CONFIG,
+      STORES.MEMBERS,
+      STORES.EXERCISES,
+      STORES.SESSIONS,
+      STORES.ROUTINE_TEMPLATES,
+      STORES.ROUTINE_LOGS,
+    ],
+    'readwrite',
+    async (tx) => {
+      await Promise.all([
+        tx.objectStore(STORES.APP_CONFIG).clear(),
+        tx.objectStore(STORES.MEMBERS).clear(),
+        tx.objectStore(STORES.EXERCISES).clear(),
+        tx.objectStore(STORES.SESSIONS).clear(),
+        tx.objectStore(STORES.ROUTINE_TEMPLATES).clear(),
+        tx.objectStore(STORES.ROUTINE_LOGS).clear(),
+      ])
+    },
+  )
+}

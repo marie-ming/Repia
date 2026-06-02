@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { importBackup } from './backup.ts'
+import { importBackup, resetAllData } from './backup.ts'
 import { membersRepo } from './repositories/members.ts'
 import { exercisesRepo } from './repositories/exercises.ts'
+import { sessionsRepo } from './repositories/sessions.ts'
 import { appConfigRepo } from './repositories/appConfig.ts'
 
 function makeBackup(overrides: Partial<Record<string, unknown>> = {}): string {
@@ -101,5 +102,25 @@ describe('importBackup', () => {
     const list = await exercisesRepo.findAll()
     expect(list).toHaveLength(1)
     expect(list[0].photos).toEqual(['data:image/jpeg;base64,xxx'])
+  })
+})
+
+describe('resetAllData', () => {
+  it('모든 스토어를 비움', async () => {
+    await membersRepo.create({ name: '회원' })
+    await exercisesRepo.create({ name: '운동' })
+    await sessionsRepo.create({
+      memberId: 'm1',
+      memberNameSnapshot: 'x',
+      date: '2026-06-01',
+    })
+    await appConfigRepo.setMode('trainer')
+
+    await resetAllData()
+
+    expect(await membersRepo.findAll()).toEqual([])
+    expect(await exercisesRepo.findAll()).toEqual([])
+    expect(await sessionsRepo.findAll()).toEqual([])
+    expect(await appConfigRepo.getMode()).toBeNull()
   })
 })
