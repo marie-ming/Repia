@@ -4,6 +4,7 @@ import { BottomSheet } from './BottomSheet.tsx'
 import { ConfirmDialog } from './ConfirmDialog.tsx'
 import { MEMBER_STATUS_OPTIONS } from '../constants.ts'
 import { todayISODate } from '../utils/date.ts'
+import { formatPhone } from '../utils/phone.ts'
 
 export interface MemberFormData {
   name: string
@@ -91,10 +92,11 @@ export function MemberFormSheet({ open, member, onClose, onSave, onDelete }: Mem
           <input
             className="field__input"
             type="tel"
-            inputMode="tel"
+            inputMode="numeric"
             value={form.phone}
-            onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, phone: formatPhone(e.target.value) }))}
             placeholder="010-0000-0000"
+            maxLength={13}
           />
         </label>
 
