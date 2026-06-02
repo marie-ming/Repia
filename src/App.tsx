@@ -18,7 +18,7 @@ type AppState =
   | { status: 'ready'; mode: Mode }
 
 const DEFAULT_MODE: Mode = 'personal'
-const SPLASH_MIN_MS = 600
+const SPLASH_MIN_MS = 1200
 
 function App() {
   const [state, setState] = useState<AppState>({ status: 'loading' })
