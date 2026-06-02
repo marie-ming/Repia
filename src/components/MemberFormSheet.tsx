@@ -5,18 +5,7 @@ import { ConfirmDialog } from './ConfirmDialog.tsx'
 import { MEMBER_STATUS_OPTIONS } from '../constants.ts'
 import { todayISODate } from '../utils/date.ts'
 
-const DEFAULT_EMOJI = '🙂'
-
-// Keep only the last typed emoji/grapheme so the avatar holds a single character.
-function lastGrapheme(value: string): string {
-  if (!value) return ''
-  const segmenter = new Intl.Segmenter('ko')
-  const segments = Array.from(segmenter.segment(value), (s) => s.segment)
-  return segments.at(-1) ?? ''
-}
-
 export interface MemberFormData {
-  emoji: string
   name: string
   phone: string
   status: MemberStatus
@@ -34,7 +23,6 @@ interface MemberFormSheetProps {
 
 function emptyForm(): MemberFormData {
   return {
-    emoji: DEFAULT_EMOJI,
     name: '',
     phone: '',
     status: 'active',
@@ -47,13 +35,11 @@ export function MemberFormSheet({ open, member, onClose, onSave, onDelete }: Mem
   const [form, setForm] = useState<MemberFormData>(emptyForm)
   const initRef = useRef<MemberFormData>(emptyForm())
   const [confirmClose, setConfirmClose] = useState(false)
-  const emojiInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!open) return
     const initial: MemberFormData = member
       ? {
-          emoji: member.emoji,
           name: member.name,
           phone: member.phone,
           status: member.status ?? 'active',
@@ -88,26 +74,6 @@ export function MemberFormSheet({ open, member, onClose, onSave, onDelete }: Mem
   return (
     <BottomSheet open={open} onClose={handleAttemptClose} title={member ? '회원 수정' : '회원 추가'}>
       <form className="member-form" onSubmit={handleSubmit}>
-        <div className="emoji-field">
-          <button
-            type="button"
-            className="emoji-avatar"
-            onClick={() => emojiInputRef.current?.focus()}
-            aria-label="이모지 선택"
-          >
-            {form.emoji || DEFAULT_EMOJI}
-          </button>
-          <input
-            ref={emojiInputRef}
-            className="emoji-field__input"
-            type="text"
-            value={form.emoji}
-            onChange={(e) => setForm((f) => ({ ...f, emoji: lastGrapheme(e.target.value) }))}
-            aria-label="이모지"
-          />
-          <span className="emoji-field__hint">탭해서 이모지를 선택하세요</span>
-        </div>
-
         <label className="field">
           <span className="field__label">이름 *</span>
           <input

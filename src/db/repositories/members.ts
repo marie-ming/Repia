@@ -27,7 +27,6 @@ export const membersRepo = {
     const now = new Date().toISOString()
     const member: Member = {
       id: newId(),
-      emoji: data.emoji ?? '🏋️',
       name: data.name,
       phone: data.phone ?? '',
       status: data.status ?? 'active',

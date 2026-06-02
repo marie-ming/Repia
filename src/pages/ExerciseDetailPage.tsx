@@ -2,23 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import type { Exercise } from '../db/types.ts'
-import { ExerciseFormSheet } from '../components/ExerciseFormSheet.tsx'
-import type { ExerciseFormData } from '../components/ExerciseFormSheet.tsx'
-import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
-import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon } from '../components/icons.tsx'
 import { EXERCISE_CATEGORY_LABELS, EQUIPMENT_LABELS, gripLabel } from '../constants.ts'
 
 export function ExerciseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const showToast = useToast()
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [loading, setLoading] = useState(true)
   const [activePhoto, setActivePhoto] = useState(0)
-  const [editOpen, setEditOpen] = useState(false)
-  const [confirmDel, setConfirmDel] = useState(false)
-  const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -30,27 +22,6 @@ export function ExerciseDetailPage() {
   useEffect(() => {
     load()
   }, [load])
-
-  async function handleSave(data: ExerciseFormData) {
-    if (!exercise) return
-    await exercisesRepo.update(exercise.id, data)
-    setEditOpen(false)
-    setActivePhoto(0)
-    await load()
-  }
-
-  async function confirmDelete() {
-    if (!exercise) return
-    try {
-      await exercisesRepo.delete(exercise.id)
-      setConfirmDel(false)
-      showToast('운동이 삭제되었습니다')
-      navigate('/exercises')
-    } catch (err) {
-      setConfirmDel(false)
-      setBlockedMessage(err instanceof Error ? err.message : '삭제할 수 없습니다.')
-    }
-  }
 
   function onCarouselScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget
@@ -69,6 +40,7 @@ export function ExerciseDetailPage() {
           <button type="button" className="detail__back" onClick={() => navigate(-1)} aria-label="뒤로">
             <ChevronLeftIcon />
           </button>
+          <span className="detail__bar-spacer" />
         </header>
         <div className="empty">
           <p className="empty__title">운동을 찾을 수 없습니다</p>
@@ -83,7 +55,7 @@ export function ExerciseDetailPage() {
         <button type="button" className="detail__back" onClick={() => navigate(-1)} aria-label="뒤로">
           <ChevronLeftIcon />
         </button>
-        <button type="button" className="detail__edit" onClick={() => setEditOpen(true)}>
+        <button type="button" className="detail__edit" onClick={() => navigate(`/exercises/${exercise.id}/edit`)}>
           수정
         </button>
       </header>
@@ -154,36 +126,6 @@ export function ExerciseDetailPage() {
 
         {exercise.description && <p className="detail__desc">{exercise.description}</p>}
       </div>
-
-      <ExerciseFormSheet
-        open={editOpen}
-        exercise={exercise}
-        onClose={() => setEditOpen(false)}
-        onSave={handleSave}
-        onDelete={() => {
-          setEditOpen(false)
-          setConfirmDel(true)
-        }}
-      />
-
-      <ConfirmDialog
-        open={confirmDel}
-        title={`${exercise.name} 운동을 삭제할까요?`}
-        confirmLabel="삭제"
-        danger
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmDel(false)}
-      />
-
-      <ConfirmDialog
-        open={!!blockedMessage}
-        title="삭제할 수 없습니다"
-        message={blockedMessage ?? ''}
-        confirmLabel="확인"
-        hideCancel
-        onConfirm={() => setBlockedMessage(null)}
-        onCancel={() => setBlockedMessage(null)}
-      />
     </div>
   )
 }

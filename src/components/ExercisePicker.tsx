@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Exercise, ExerciseCategory } from '../db/types.ts'
+import type { Exercise, ExerciseCategory, Equipment } from '../db/types.ts'
 import { CheckIcon, SearchIcon, ChevronLeftIcon } from './icons.tsx'
-import { EXERCISE_CATEGORY_OPTIONS, EXERCISE_CATEGORY_LABELS, EQUIPMENT_LABELS } from '../constants.ts'
+import {
+  EXERCISE_CATEGORY_OPTIONS,
+  EXERCISE_CATEGORY_LABELS,
+  EQUIPMENT_OPTIONS,
+  EQUIPMENT_LABELS,
+} from '../constants.ts'
 
 type CategoryFilter = ExerciseCategory | 'all'
+type EquipmentFilter = Equipment | 'all'
 
 interface ExercisePickerProps {
   open: boolean
@@ -22,6 +28,7 @@ export function ExercisePicker({
 }: ExercisePickerProps) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<CategoryFilter>('all')
+  const [equipment, setEquipment] = useState<EquipmentFilter>('all')
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -29,6 +36,7 @@ export function ExercisePicker({
       setSelected(new Set())
       setQuery('')
       setCategory('all')
+      setEquipment('all')
     }
   }, [open])
 
@@ -39,10 +47,11 @@ export function ExercisePicker({
     return exercises.filter((ex) => {
       if (exclude.has(ex.id)) return false
       if (category !== 'all' && !ex.categories.includes(category)) return false
+      if (equipment !== 'all' && ex.equipment !== equipment) return false
       if (q && !ex.name.toLowerCase().includes(q)) return false
       return true
     })
-  }, [exercises, exclude, query, category])
+  }, [exercises, exclude, query, category, equipment])
 
   if (!open) return null
 
@@ -73,6 +82,7 @@ export function ExercisePicker({
       </header>
 
       <div className="picker__body">
+        <div className="picker__sticky">
         <div className="member-toolbar">
           <div className="search">
             <SearchIcon className="search__icon" />
@@ -103,6 +113,26 @@ export function ExercisePicker({
               {opt.label}
             </button>
           ))}
+        </div>
+        <div className="chips chips--scroll">
+          <button
+            type="button"
+            className={equipment === 'all' ? 'chip chip--active' : 'chip'}
+            onClick={() => setEquipment('all')}
+          >
+            전체
+          </button>
+          {EQUIPMENT_OPTIONS.map((opt) => (
+            <button
+              type="button"
+              key={opt.value}
+              className={equipment === opt.value ? 'chip chip--active' : 'chip'}
+              onClick={() => setEquipment(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
         </div>
 
         {visible.length === 0 ? (

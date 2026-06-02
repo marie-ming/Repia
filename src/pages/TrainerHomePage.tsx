@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
-import type { SessionInput } from '../db/repositories/sessions.ts'
+import { membersRepo } from '../db/repositories/members.ts'
 import type { Session } from '../db/types.ts'
 import { Calendar } from '../components/Calendar.tsx'
 import { ModeTitleButton } from '../components/ModeTitleButton.tsx'
-import { SessionFormSheet } from '../components/SessionFormSheet.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { PlusIcon } from '../components/icons.tsx'
 import {
@@ -19,18 +18,12 @@ import { SESSION_STATUS_LABELS } from '../constants.ts'
 
 export function TrainerHomePage() {
   const navigate = useNavigate()
-  const [params, setParams] = useSearchParams()
-  const selectedDate = params.get('date') ?? todayISODate()
-  const setSelectedDate = useCallback(
-    (d: string) => setParams({ date: d }, { replace: true }),
-    [setParams],
-  )
+  const [selectedDate, setSelectedDate] = useState<string>(() => todayISODate())
   const anchorSunday = useMemo(
     () => startOfWeekSunday(parseISODate(selectedDate)),
     [selectedDate],
   )
   const [sessions, setSessions] = useState<Session[]>([])
-  const [sheetOpen, setSheetOpen] = useState(false)
   const showToast = useToast()
 
   const load = useCallback(async () => {
@@ -65,11 +58,13 @@ export function TrainerHomePage() {
     setSelectedDate(toISODate(new Date()))
   }
 
-  async function handleCreate(input: SessionInput) {
-    await sessionsRepo.create(input)
-    setSheetOpen(false)
-    showToast('수업이 추가되었습니다')
-    await load()
+  async function handleAddClick() {
+    const ms = await membersRepo.findAll({ sortBy: 'name' })
+    if (ms.length === 0) {
+      showToast('회원을 먼저 추가해주세요')
+      return
+    }
+    navigate(`/sessions/new?date=${selectedDate}`)
   }
 
   return (
@@ -114,18 +109,9 @@ export function TrainerHomePage() {
         )}
       </div>
 
-      <button type="button" className="fab" onClick={() => setSheetOpen(true)} aria-label="수업 추가">
+      <button type="button" className="fab" onClick={handleAddClick} aria-label="수업 추가">
         <PlusIcon />
       </button>
-
-      <SessionFormSheet
-        open={sheetOpen}
-        session={null}
-        defaultDate={selectedDate}
-        onClose={() => setSheetOpen(false)}
-        onSave={handleCreate}
-        onDelete={() => {}}
-      />
     </div>
   )
 }

@@ -79,33 +79,35 @@ export function MembersPage() {
 
   return (
     <div className="page">
-      <header className="page__header">
-        <h1 className="page__title">회원</h1>
-      </header>
+      <div className="page__sticky">
+        <header className="page__header">
+          <h1 className="page__title">회원</h1>
+        </header>
 
-      {!loading && rows.length > 0 && (
-        <div className="member-toolbar">
-          <div className="search">
-            <SearchIcon className="search__icon" />
-            <input
-              className="search__input"
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="이름 검색"
-            />
+        {!loading && rows.length > 0 && (
+          <div className="member-toolbar">
+            <div className="search">
+              <SearchIcon className="search__icon" />
+              <input
+                className="search__input"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="이름 검색"
+              />
+            </div>
+            {hasEnded && (
+              <button
+                type="button"
+                className={showEnded ? 'chip chip--active' : 'chip'}
+                onClick={() => setShowEnded((v) => !v)}
+              >
+                수업종료
+              </button>
+            )}
           </div>
-          {hasEnded && (
-            <button
-              type="button"
-              className={showEnded ? 'chip chip--active' : 'chip'}
-              onClick={() => setShowEnded((v) => !v)}
-            >
-              수업종료
-            </button>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {loading ? (
         <p className="page__placeholder">불러오는 중...</p>
@@ -138,7 +140,6 @@ export function MembersPage() {
                   className="member-card"
                   onClick={() => navigate(`/members/${member.id}`)}
                 >
-                  <span className="member-card__emoji">{member.emoji}</span>
                   <span className="member-card__info">
                     <span className="member-card__name-row">
                       <span className="member-card__name">{member.name}</span>

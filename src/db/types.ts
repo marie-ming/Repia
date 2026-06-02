@@ -9,7 +9,6 @@ export type MemberStatus = 'active' | 'ended'
 
 export interface Member {
   id: string
-  emoji: string
   name: string
   phone: string
   status: MemberStatus

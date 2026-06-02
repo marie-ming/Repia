@@ -101,7 +101,6 @@ export function MemberDetailPage() {
 
       <div className="detail__body">
         <div className="member-detail__head">
-          <span className="member-detail__emoji">{member.emoji}</span>
           <h1 className="member-detail__name">{member.name}</h1>
           {member.status === 'ended' && <span className="badge">수업종료</span>}
         </div>

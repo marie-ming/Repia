@@ -1,4 +1,4 @@
-import { addDays, toISODate, todayISODate, WEEKDAY_LABELS } from '../utils/date.ts'
+import { addDays, parseISODate, toISODate, todayISODate, WEEKDAY_LABELS } from '../utils/date.ts'
 import { ChevronLeftIcon, ChevronRightIcon } from './icons.tsx'
 
 interface CalendarProps {
@@ -20,7 +20,9 @@ export function Calendar({
 }: CalendarProps) {
   const today = todayISODate()
   const days = Array.from({ length: 14 }, (_, i) => addDays(anchorSunday, i))
-  const monthLabel = `${anchorSunday.getFullYear()}년 ${anchorSunday.getMonth() + 1}월`
+  // 라벨은 선택일이 속한 월을 따라가도록 (anchor가 5월 마지막 일요일이고 selectedDate가 6월일 때 6월로 표기)
+  const labelDate = parseISODate(selectedDate)
+  const monthLabel = `${labelDate.getFullYear()}년 ${labelDate.getMonth() + 1}월`
 
   return (
     <div className="calendar">

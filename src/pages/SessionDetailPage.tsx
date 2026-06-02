@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
-import type { SessionInput } from '../db/repositories/sessions.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import type { Session, Exercise } from '../db/types.ts'
-import { SessionFormSheet } from '../components/SessionFormSheet.tsx'
-import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
-import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon, ChevronRightIcon } from '../components/icons.tsx'
 import { SESSION_STATUS_LABELS } from '../constants.ts'
 import { formatDotDate } from '../utils/date.ts'
@@ -14,12 +10,9 @@ import { formatDotDate } from '../utils/date.ts'
 export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const showToast = useToast()
   const [session, setSession] = useState<Session | null>(null)
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [loading, setLoading] = useState(true)
-  const [editOpen, setEditOpen] = useState(false)
-  const [confirmDel, setConfirmDel] = useState(false)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -37,22 +30,6 @@ export function SessionDetailPage() {
     return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
   }
 
-  async function handleSave(input: SessionInput) {
-    if (!session) return
-    await sessionsRepo.update(session.id, input)
-    setEditOpen(false)
-    showToast('수업이 수정되었습니다')
-    await load()
-  }
-
-  async function confirmDelete() {
-    if (!session) return
-    await sessionsRepo.delete(session.id)
-    setConfirmDel(false)
-    showToast('수업이 삭제되었습니다')
-    navigate('/')
-  }
-
   if (loading) {
     return <div className="detail"><p className="page__placeholder">불러오는 중...</p></div>
   }
@@ -64,6 +41,7 @@ export function SessionDetailPage() {
           <button type="button" className="detail__back" onClick={() => navigate('/')} aria-label="뒤로">
             <ChevronLeftIcon />
           </button>
+          <span className="detail__bar-spacer" />
         </header>
         <div className="empty">
           <p className="empty__title">수업을 찾을 수 없습니다</p>
@@ -78,7 +56,7 @@ export function SessionDetailPage() {
         <button type="button" className="detail__back" onClick={() => navigate(-1)} aria-label="뒤로">
           <ChevronLeftIcon />
         </button>
-        <button type="button" className="detail__edit" onClick={() => setEditOpen(true)}>
+        <button type="button" className="detail__edit" onClick={() => navigate(`/sessions/${session.id}/edit`)}>
           수정
         </button>
       </header>
@@ -136,28 +114,6 @@ export function SessionDetailPage() {
           </>
         )}
       </div>
-
-      <SessionFormSheet
-        open={editOpen}
-        session={session}
-        defaultDate={session.date}
-        onClose={() => setEditOpen(false)}
-        onSave={handleSave}
-        onDelete={() => {
-          setEditOpen(false)
-          setConfirmDel(true)
-        }}
-      />
-
-      <ConfirmDialog
-        open={confirmDel}
-        title="수업을 삭제할까요?"
-        message={`${session.memberNameSnapshot} · ${formatDotDate(session.date)}`}
-        confirmLabel="삭제"
-        danger
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmDel(false)}
-      />
     </div>
   )
 }

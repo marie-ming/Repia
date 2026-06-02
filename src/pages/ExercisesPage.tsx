@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import type { Exercise, ExerciseCategory, Equipment } from '../db/types.ts'
-import { ExerciseFormSheet } from '../components/ExerciseFormSheet.tsx'
-import type { ExerciseFormData } from '../components/ExerciseFormSheet.tsx'
 import { PlusIcon, SearchIcon } from '../components/icons.tsx'
 import {
   EXERCISE_CATEGORY_OPTIONS,
@@ -22,7 +20,6 @@ export function ExercisesPage() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<CategoryFilter>('all')
   const [equipment, setEquipment] = useState<EquipmentFilter>('all')
-  const [sheetOpen, setSheetOpen] = useState(false)
 
   const load = useCallback(async () => {
     const all = await exercisesRepo.findAll()
@@ -44,72 +41,68 @@ export function ExercisesPage() {
     })
   }, [exercises, query, category, equipment])
 
-  async function handleCreate(data: ExerciseFormData) {
-    await exercisesRepo.create(data)
-    setSheetOpen(false)
-    await load()
-  }
-
   return (
     <div className="page">
-      <header className="page__header">
-        <h1 className="page__title">운동</h1>
-      </header>
+      <div className="page__sticky">
+        <header className="page__header">
+          <h1 className="page__title">운동</h1>
+        </header>
 
-      {!loading && exercises.length > 0 && (
-        <>
-          <div className="member-toolbar">
-            <div className="search">
-              <SearchIcon className="search__icon" />
-              <input
-                className="search__input"
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="운동 이름 검색"
-              />
+        {!loading && exercises.length > 0 && (
+          <>
+            <div className="member-toolbar">
+              <div className="search">
+                <SearchIcon className="search__icon" />
+                <input
+                  className="search__input"
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="운동 이름 검색"
+                />
+              </div>
             </div>
-          </div>
-          <div className="chips chips--scroll">
-            <button
-              type="button"
-              className={category === 'all' ? 'chip chip--active' : 'chip'}
-              onClick={() => setCategory('all')}
-            >
-              전체
-            </button>
-            {EXERCISE_CATEGORY_OPTIONS.map((opt) => (
+            <div className="chips chips--scroll">
               <button
                 type="button"
-                key={opt.value}
-                className={category === opt.value ? 'chip chip--active' : 'chip'}
-                onClick={() => setCategory(opt.value)}
+                className={category === 'all' ? 'chip chip--active' : 'chip'}
+                onClick={() => setCategory('all')}
               >
-                {opt.label}
+                전체
               </button>
-            ))}
-          </div>
-          <div className="chips chips--scroll">
-            <button
-              type="button"
-              className={equipment === 'all' ? 'chip chip--active' : 'chip'}
-              onClick={() => setEquipment('all')}
-            >
-              전체
-            </button>
-            {EQUIPMENT_OPTIONS.map((opt) => (
+              {EXERCISE_CATEGORY_OPTIONS.map((opt) => (
+                <button
+                  type="button"
+                  key={opt.value}
+                  className={category === opt.value ? 'chip chip--active' : 'chip'}
+                  onClick={() => setCategory(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="chips chips--scroll">
               <button
                 type="button"
-                key={opt.value}
-                className={equipment === opt.value ? 'chip chip--active' : 'chip'}
-                onClick={() => setEquipment(opt.value)}
+                className={equipment === 'all' ? 'chip chip--active' : 'chip'}
+                onClick={() => setEquipment('all')}
               >
-                {opt.label}
+                전체
               </button>
-            ))}
-          </div>
-        </>
-      )}
+              {EQUIPMENT_OPTIONS.map((opt) => (
+                <button
+                  type="button"
+                  key={opt.value}
+                  className={equipment === opt.value ? 'chip chip--active' : 'chip'}
+                  onClick={() => setEquipment(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       {loading ? (
         <p className="page__placeholder">불러오는 중...</p>
@@ -161,17 +154,9 @@ export function ExercisesPage() {
         </ul>
       )}
 
-      <button type="button" className="fab" onClick={() => setSheetOpen(true)} aria-label="운동 추가">
+      <button type="button" className="fab" onClick={() => navigate('/exercises/new')} aria-label="운동 추가">
         <PlusIcon />
       </button>
-
-      <ExerciseFormSheet
-        open={sheetOpen}
-        exercise={null}
-        onClose={() => setSheetOpen(false)}
-        onSave={handleCreate}
-        onDelete={() => {}}
-      />
     </div>
   )
 }
