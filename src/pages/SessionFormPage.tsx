@@ -229,6 +229,7 @@ export function SessionFormPage() {
                   className="field__input"
                   type="time"
                   value={form.time}
+                  data-empty={form.time ? undefined : 'true'}
                   onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
                 />
                 {!form.time && <span className="time-input__placeholder">시간 선택</span>}

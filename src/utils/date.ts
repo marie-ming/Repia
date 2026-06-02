@@ -41,4 +41,16 @@ export function startOfWeekSunday(date: Date): Date {
   return d
 }
 
+// First day of the month containing the given date
+export function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1)
+}
+
+// Add months (preserves day where possible)
+export function addMonths(date: Date, n: number): Date {
+  const d = new Date(date)
+  d.setMonth(d.getMonth() + n)
+  return d
+}
+
 export const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const

@@ -973,8 +973,8 @@ button {
   position: fixed;
   right: 1.25rem;
   bottom: calc(4.5rem + var(--safe-bottom));
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 3.25rem;
+  height: 3.25rem;
   border-radius: 50%;
   background: var(--color-primary);
   color: #fff;
@@ -1119,6 +1119,12 @@ button {
     opacity: 0.6;
     pointer-events: none;
   }
+}
+
+// iOS Safari / Chrome은 빈 time input에 자체 hint(--:--, AM/PM)를 그리므로
+// data-empty일 때 native datetime edit을 투명 처리해 우리 placeholder만 보이게 한다
+input[type='time'][data-empty='true']::-webkit-datetime-edit {
+  color: transparent;
 }
 
 // Session routine editor
@@ -1347,10 +1353,16 @@ button {
       font-weight: 700;
     }
 
+    &--other {
+      color: var(--color-text-secondary);
+      opacity: 0.4;
+    }
+
     &--selected {
       background: var(--color-primary);
       color: #fff;
       font-weight: 700;
+      opacity: 1;
     }
   }
 

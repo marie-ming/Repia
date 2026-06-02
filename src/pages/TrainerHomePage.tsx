@@ -9,7 +9,9 @@ import { useToast } from '../components/Toast.tsx'
 import { PlusIcon } from '../components/icons.tsx'
 import {
   addDays,
+  addMonths,
   parseISODate,
+  startOfMonth,
   startOfWeekSunday,
   toISODate,
   todayISODate,
@@ -19,19 +21,20 @@ import { SESSION_STATUS_LABELS } from '../constants.ts'
 export function TrainerHomePage() {
   const navigate = useNavigate()
   const [selectedDate, setSelectedDate] = useState<string>(() => todayISODate())
-  const anchorSunday = useMemo(
-    () => startOfWeekSunday(parseISODate(selectedDate)),
+  const viewMonth = useMemo(
+    () => startOfMonth(parseISODate(selectedDate)),
     [selectedDate],
   )
   const [sessions, setSessions] = useState<Session[]>([])
   const showToast = useToast()
 
   const load = useCallback(async () => {
-    const start = toISODate(anchorSunday)
-    const end = toISODate(addDays(anchorSunday, 13))
+    const gridStart = startOfWeekSunday(viewMonth)
+    const start = toISODate(gridStart)
+    const end = toISODate(addDays(gridStart, 41))
     const list = await sessionsRepo.findByDateRange(start, end)
     setSessions(list)
-  }, [anchorSunday])
+  }, [viewMonth])
 
   useEffect(() => {
     load()
@@ -50,8 +53,9 @@ export function TrainerHomePage() {
     [sessions, selectedDate],
   )
 
-  function shift(deltaDays: number) {
-    setSelectedDate(toISODate(addDays(parseISODate(selectedDate), deltaDays)))
+  function shiftMonth(delta: number) {
+    const nextMonth = addMonths(viewMonth, delta)
+    setSelectedDate(toISODate(nextMonth)) // 해당 월의 1일로 이동
   }
 
   function goToday() {
@@ -72,11 +76,11 @@ export function TrainerHomePage() {
       <div className="home-page__top">
         <ModeTitleButton title="홈" />
         <Calendar
-          anchorSunday={anchorSunday}
+          viewMonth={viewMonth}
           selectedDate={selectedDate}
           markedDates={markedDates}
           onSelect={setSelectedDate}
-          onShift={shift}
+          onShiftMonth={shiftMonth}
           onToday={goToday}
         />
       </div>
