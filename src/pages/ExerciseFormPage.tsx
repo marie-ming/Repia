@@ -73,8 +73,8 @@ export function ExerciseFormPage() {
     if (isEdit) load()
   }, [isEdit, load])
 
-  const canSave = form.name.trim().length > 0
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
+  const canSave = form.name.trim().length > 0 && (!isEdit || isDirty)
 
   function toggleCategory(value: ExerciseCategory) {
     setForm((f) => {

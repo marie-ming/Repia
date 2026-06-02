@@ -58,6 +58,7 @@ export function MemberDetailPage() {
     if (!member) return
     await membersRepo.delete(member.id)
     setConfirmDel(false)
+    setEditOpen(false)
     showToast('회원이 삭제되었습니다')
     navigate('/members')
   }
@@ -168,10 +169,7 @@ export function MemberDetailPage() {
         member={member}
         onClose={() => setEditOpen(false)}
         onSave={handleSave}
-        onDelete={() => {
-          setEditOpen(false)
-          setConfirmDel(true)
-        }}
+        onDelete={() => setConfirmDel(true)}
       />
 
       <ConfirmDialog

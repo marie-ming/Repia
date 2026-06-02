@@ -53,8 +53,9 @@ export function MemberFormSheet({ open, member, onClose, onSave, onDelete }: Mem
     setConfirmClose(false)
   }, [open, member])
 
-  const canSave = form.name.trim().length > 0
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
+  // 신규 등록: 이름만 있으면 가능 / 수정: 변경된 게 있을 때만
+  const canSave = form.name.trim().length > 0 && (!member || isDirty)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -83,7 +84,6 @@ export function MemberFormSheet({ open, member, onClose, onSave, onDelete }: Mem
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             placeholder="회원 이름"
-            autoFocus
           />
         </label>
 

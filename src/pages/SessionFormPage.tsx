@@ -83,8 +83,8 @@ export function SessionFormPage() {
     load()
   }, [load])
 
-  const canSave = !!form.memberId && !!form.date
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
+  const canSave = !!form.memberId && !!form.date && (!isEdit || isDirty)
 
   function exerciseName(exId: string): string {
     return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
