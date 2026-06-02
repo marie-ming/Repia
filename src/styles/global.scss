@@ -1575,6 +1575,21 @@ button {
   }
 }
 
+.page--settings {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings__version {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  opacity: 0.7;
+}
+
 // Settings sections
 .settings-section {
   margin-bottom: 2rem;

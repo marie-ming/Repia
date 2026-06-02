@@ -14,7 +14,7 @@ const ITEMS: MenuItem[] = [
 export function SettingsPage() {
   const navigate = useNavigate()
   return (
-    <div className="page">
+    <div className="page page--settings">
       <header className="page__header">
         <h1 className="page__title">설정</h1>
       </header>
@@ -32,6 +32,8 @@ export function SettingsPage() {
           </li>
         ))}
       </ul>
+
+      <p className="settings__version">v{__APP_VERSION__}</p>
     </div>
   )
 }
