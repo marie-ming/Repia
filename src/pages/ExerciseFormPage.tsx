@@ -199,7 +199,14 @@ export function ExerciseFormPage() {
               <button type="button" className="photo-add" onClick={() => fileRef.current?.click()} aria-label="사진 추가">＋</button>
             </div>
           </div>
-          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={handleFiles} />
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            multiple
+            hidden
+            onChange={handleFiles}
+          />
 
           <label className="field">
             <span className="field__label">이름 *</span>
