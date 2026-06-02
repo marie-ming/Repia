@@ -1103,6 +1103,24 @@ button {
   }
 }
 
+// type="time"은 placeholder 속성을 지원하지 않고 안드로이드 Chrome은
+// 빈 값에 native hint도 표시 안 함 → 빈 값일 때만 노출되는 placeholder span
+.time-input {
+  position: relative;
+  display: block;
+
+  &__placeholder {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
 // Session routine editor
 .routine-editor {
   display: flex;

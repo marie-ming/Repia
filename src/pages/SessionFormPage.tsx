@@ -224,12 +224,15 @@ export function SessionFormPage() {
             </label>
             <label className="field">
               <span className="field__label">시간</span>
-              <input
-                className="field__input"
-                type="time"
-                value={form.time}
-                onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
-              />
+              <span className="time-input">
+                <input
+                  className="field__input"
+                  type="time"
+                  value={form.time}
+                  onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
+                />
+                {!form.time && <span className="time-input__placeholder">시간 선택</span>}
+              </span>
             </label>
           </div>
 
