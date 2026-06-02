@@ -14,14 +14,29 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-// date/time input: 안드로이드 Chrome은 indicator의 background-image를 native chevron으로
-// 덮어쓰기도 하므로, input 자체에 SVG 배경을 칠하고 indicator는 투명한 클릭 레이어로 둔다.
+// date/time input: 안드로이드 Chrome은 native dropdown ▼ chevron을 별도로 그리므로
+// appearance:none으로 제거하고, input 자체에 SVG 배경을 칠해 일관된 아이콘을 보인다.
 input[type='date'],
 input[type='time'] {
+  -webkit-appearance: none;
+  appearance: none;
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 18px 18px;
   padding-right: 2.5rem;
+}
+
+// 안드로이드/iOS의 datetime edit 영역과 spin/clear 버튼이 native UI를 그리지 못하게 차단
+input[type='date']::-webkit-datetime-edit,
+input[type='time']::-webkit-datetime-edit {
+  padding: 0;
+}
+input[type='date']::-webkit-inner-spin-button,
+input[type='time']::-webkit-inner-spin-button,
+input[type='date']::-webkit-clear-button,
+input[type='time']::-webkit-clear-button {
+  display: none;
+  -webkit-appearance: none;
 }
 
 input[type='date'] {
