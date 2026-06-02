@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { normalize } from './exercises.ts'
+import { exercisesRepo, normalize } from './exercises.ts'
+import { sessionsRepo } from './sessions.ts'
 import type { Exercise } from '../types.ts'
 
 function makeBase(): Partial<Exercise> {
@@ -75,5 +76,76 @@ describe('normalize (exercises 레거시 데이터 마이그레이션)', () => {
     expect(out.grip).toBe('')
     expect('photo' in out).toBe(false)
     expect('category' in out).toBe(false)
+  })
+})
+
+describe('exercisesRepo (fake-indexeddb)', () => {
+  it('create: 기본값 채워 저장', async () => {
+    const ex = await exercisesRepo.create({ name: '데드리프트' })
+    expect(ex.id).toMatch(/^ex_/)
+    expect(ex.name).toBe('데드리프트')
+    expect(ex.categories).toEqual([])
+    expect(ex.equipment).toBeNull()
+    expect(ex.grip).toBe('')
+    expect(ex.photos).toEqual([])
+    expect(ex.description).toBe('')
+  })
+
+  it('create: 입력값이 기본값을 override', async () => {
+    const ex = await exercisesRepo.create({
+      name: '벤치프레스',
+      categories: ['chest'],
+      equipment: 'barbell',
+      grip: '오버핸드',
+      photos: ['a.jpg'],
+      description: '주의사항',
+    })
+    expect(ex.categories).toEqual(['chest'])
+    expect(ex.equipment).toBe('barbell')
+    expect(ex.grip).toBe('오버핸드')
+    expect(ex.photos).toEqual(['a.jpg'])
+  })
+
+  it('findAll: 이름순 정렬', async () => {
+    await exercisesRepo.create({ name: '나' })
+    await exercisesRepo.create({ name: '가' })
+    await exercisesRepo.create({ name: '다' })
+    const list = await exercisesRepo.findAll()
+    expect(list.map((e) => e.name)).toEqual(['가', '나', '다'])
+  })
+
+  it('findById: 저장된 운동 조회', async () => {
+    const ex = await exercisesRepo.create({ name: 'x' })
+    expect(await exercisesRepo.findById(ex.id)).toEqual(ex)
+  })
+
+  it('update: 부분 변경 + updatedAt 갱신', async () => {
+    const ex = await exercisesRepo.create({ name: 'orig' })
+    await new Promise((r) => setTimeout(r, 5))
+    const upd = await exercisesRepo.update(ex.id, { name: 'new' })
+    expect(upd.name).toBe('new')
+    expect(upd.updatedAt).not.toBe(ex.updatedAt)
+  })
+
+  it('update: 없는 id면 에러', async () => {
+    await expect(exercisesRepo.update('ex_none', {})).rejects.toThrow(/not found/)
+  })
+
+  it('delete: 사용 중이 아니면 삭제 가능', async () => {
+    const ex = await exercisesRepo.create({ name: '삭제될' })
+    await exercisesRepo.delete(ex.id)
+    expect(await exercisesRepo.findById(ex.id)).toBeUndefined()
+  })
+
+  it('delete: 세션에서 사용 중이면 에러', async () => {
+    const ex = await exercisesRepo.create({ name: '사용중' })
+    await sessionsRepo.create({
+      memberId: 'm1',
+      memberNameSnapshot: 'x',
+      date: '2026-06-01',
+      routine: [{ exerciseId: ex.id, sets: [{ weight: 50, reps: 10 }] }],
+    })
+    await expect(exercisesRepo.delete(ex.id)).rejects.toThrow(/사용 중/)
+    expect(await exercisesRepo.findById(ex.id)).toBeDefined() // 삭제되지 않음
   })
 })

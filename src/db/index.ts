@@ -5,6 +5,12 @@ import type { RepiaDB } from './schema.ts'
 
 let dbPromise: Promise<IDBPDatabase<RepiaDB>> | null = null
 
+// Test-only: force the next getDB() call to open a fresh connection.
+// Used together with indexedDB.deleteDatabase() between test cases.
+export function _resetDBForTests(): void {
+  dbPromise = null
+}
+
 // Returns the singleton DB instance, opening it on first call.
 export function getDB(): Promise<IDBPDatabase<RepiaDB>> {
   if (!dbPromise) {
