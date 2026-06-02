@@ -62,7 +62,13 @@ export function SessionDetailPage() {
       </header>
 
       <div className="detail__body">
-        <h1 className="detail__title">{session.memberNameSnapshot}</h1>
+        <button
+          type="button"
+          className="detail__title detail__title--link"
+          onClick={() => navigate(`/members/${session.memberId}`)}
+        >
+          {session.memberNameSnapshot}
+        </button>
 
         <div className="session-detail__meta">
           <span className="session-detail__when">

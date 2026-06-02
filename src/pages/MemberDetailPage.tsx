@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { membersRepo } from '../db/repositories/members.ts'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
-import type { Member, Session } from '../db/types.ts'
+import { exercisesRepo } from '../db/repositories/exercises.ts'
+import type { Exercise, Member, Session } from '../db/types.ts'
 import { MemberFormSheet } from '../components/MemberFormSheet.tsx'
 import type { MemberFormData } from '../components/MemberFormSheet.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
@@ -17,6 +18,7 @@ export function MemberDetailPage() {
   const showToast = useToast()
   const [member, setMember] = useState<Member | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
+  const [exercises, setExercises] = useState<Exercise[]>([])
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
@@ -26,8 +28,12 @@ export function MemberDetailPage() {
     const m = await membersRepo.findById(id)
     setMember(m ?? null)
     if (m) {
-      const ss = await sessionsRepo.findByMember(id)
+      const [ss, exs] = await Promise.all([
+        sessionsRepo.findByMember(id),
+        exercisesRepo.findAll(),
+      ])
       setSessions(ss)
+      setExercises(exs)
     }
     setLoading(false)
   }, [id])
@@ -35,6 +41,12 @@ export function MemberDetailPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  const exerciseNameById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const e of exercises) map.set(e.id, e.name)
+    return map
+  }, [exercises])
 
   const stats = useMemo(() => {
     const reserved = sessions.filter((s) => s.status === 'reserved').length
@@ -125,21 +137,10 @@ export function MemberDetailPage() {
           )}
         </dl>
 
-        <div className="member-detail__sessions-head">
-          <h2 className="detail__section">수업</h2>
-          {stats.reserved === 0 && stats.completed === 0 ? (
-            <span className="info-list__empty">수업 기록 없음</span>
-          ) : (
-            <span className="member-stats">
-              {[
-                stats.reserved > 0 ? `예정 ${stats.reserved}` : null,
-                stats.completed > 0 ? `완료 ${stats.completed}` : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </span>
-          )}
-        </div>
+        <h2 className="detail__section">수업</h2>
+        {stats.reserved === 0 && stats.completed === 0 && (
+          <p className="info-list__empty">수업 기록 없음</p>
+        )}
 
         {stats.recent.length > 0 && (
           <ul className="history-list">
@@ -154,11 +155,20 @@ export function MemberDetailPage() {
                   }
                   onClick={() => navigate(`/sessions/${s.id}`)}
                 >
-                  <span className="history-item__date">{formatShortDateWithWeekday(s.date)}</span>
-                  {s.time && <span className="history-item__time">{s.time}</span>}
-                  <span className={`session-badge session-badge--${s.status}`}>
-                    {SESSION_STATUS_LABELS[s.status]}
+                  <span className="history-item__top">
+                    <span className="history-item__date">{formatShortDateWithWeekday(s.date)}</span>
+                    {s.time && <span className="history-item__time">{s.time}</span>}
+                    <span className={`session-badge session-badge--${s.status}`}>
+                      {SESSION_STATUS_LABELS[s.status]}
+                    </span>
                   </span>
+                  {s.routine.length > 0 && (
+                    <span className="history-item__exercises">
+                      {s.routine
+                        .map((r) => exerciseNameById.get(r.exerciseId) ?? '(삭제됨)')
+                        .join(', ')}
+                    </span>
+                  )}
                 </button>
               </li>
             ))}

@@ -32,7 +32,7 @@ describe('SessionDetailPage', () => {
       memo: '인터벌 위주',
     })
     renderPage(s.id)
-    expect(await screen.findByRole('heading', { name: '홍길동' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '홍길동' })).toBeInTheDocument()
     expect(screen.getByText(/2026.06.10/)).toBeInTheDocument()
     expect(screen.getByText(/10:30/)).toBeInTheDocument()
     expect(screen.getByText('예약')).toBeInTheDocument()
@@ -109,6 +109,17 @@ describe('SessionDetailPage', () => {
     renderPage(s.id)
     await userEvent.click(await screen.findByRole('button', { name: '수정' }))
     expect(screen.getByTestId('loc')).toHaveTextContent(`/sessions/${s.id}/edit`)
+  })
+
+  it('회원 이름 클릭 시 /members/:memberId로 이동', async () => {
+    const s = await sessionsRepo.create({
+      memberId: 'm_42',
+      memberNameSnapshot: '홍길동',
+      date: '2026-06-10',
+    })
+    renderPage(s.id)
+    await userEvent.click(await screen.findByRole('button', { name: '홍길동' }))
+    expect(screen.getByTestId('loc')).toHaveTextContent('/members/m_42')
   })
 
   it('없는 id: 안내 표시', async () => {

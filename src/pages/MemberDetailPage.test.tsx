@@ -50,7 +50,7 @@ describe('MemberDetailPage', () => {
     expect(await screen.findByText('수업 기록 없음')).toBeInTheDocument()
   })
 
-  it('예정/완료 통계 표시 (0은 생략)', async () => {
+  it('수업 섹션 헤딩과 이력 표시', async () => {
     const { member } = await renderWithMember()
     await sessionsRepo.create({
       memberId: member.id,
@@ -58,20 +58,9 @@ describe('MemberDetailPage', () => {
       date: '2026-06-10',
       status: 'reserved',
     })
-    await sessionsRepo.create({
-      memberId: member.id,
-      memberNameSnapshot: member.name,
-      date: '2026-05-10',
-      status: 'completed',
-    })
-    await sessionsRepo.create({
-      memberId: member.id,
-      memberNameSnapshot: member.name,
-      date: '2026-04-10',
-      status: 'completed',
-    })
     await renderWithMember(member)
-    expect(await screen.findByText('예정 1 · 완료 2')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '수업' })).toBeInTheDocument()
+    expect(screen.queryByText('수업 기록 없음')).not.toBeInTheDocument()
   })
 
   it('수업 이력 클릭 시 수업 상세로 이동', async () => {
