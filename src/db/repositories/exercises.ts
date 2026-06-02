@@ -10,7 +10,7 @@ function newId(): string {
 
 // Backward-compat: older records used `photo` (single) and `category` (single).
 // Normalize them to `photos` / `categories` arrays on read.
-function normalize(
+export function normalize(
   ex: Exercise & { photo?: string | null; category?: ExerciseCategory },
 ): Exercise {
   if (!Array.isArray(ex.photos)) {
