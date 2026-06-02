@@ -9,13 +9,13 @@ import type { Mode } from '../db/types.ts'
 
 function Setup({
   mode = 'trainer' as Mode,
-  setMode = vi.fn().mockResolvedValue(undefined),
-  onClose = vi.fn(),
+  setMode = vi.fn(async () => {}),
+  onClose = vi.fn(() => {}),
   open = true,
 }: {
   mode?: Mode
-  setMode?: ReturnType<typeof vi.fn>
-  onClose?: ReturnType<typeof vi.fn>
+  setMode?: (m: Mode) => Promise<void>
+  onClose?: () => void
   open?: boolean
 }) {
   function PathProbe() {
