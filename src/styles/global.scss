@@ -670,6 +670,7 @@ button {
   list-style: none;
   display: flex;
   flex-direction: column;
+  padding-bottom: calc(0.5rem + var(--safe-bottom));
 
   &__item {
     width: 100%;
