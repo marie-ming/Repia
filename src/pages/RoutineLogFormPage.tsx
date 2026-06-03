@@ -5,13 +5,11 @@ import type {
   RoutineLogStatus,
   RoutineExercise,
   SetEntry,
-  ExerciseMetric,
   Exercise,
 } from '../db/types.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
-import { ExercisePicker } from '../components/ExercisePicker.tsx'
-import { SetRow } from '../components/SetRow.tsx'
+import { RoutineEditor } from '../components/RoutineEditor.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
@@ -61,7 +59,6 @@ export function RoutineLogFormPage() {
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [history, setHistory] = useState<RoutineLog[]>([])
   const [log, setLog] = useState<RoutineLog | null>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
 
   const load = useCallback(async () => {
@@ -143,61 +140,6 @@ export function RoutineLogFormPage() {
     }
     return map
   }, [history, id])
-
-  function exerciseName(exId: string): string {
-    return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
-  }
-
-  function handlePickerConfirm(ids: string[]) {
-    setForm((f) => {
-      const toAdd = ids.map((x) => {
-        const prev = lastSetsByExercise.get(x)
-        return {
-          exerciseId: x,
-          sets: prev ? prev.map((s) => ({ ...s })) : [{ weight: 0, reps: 0 }],
-        }
-      })
-      return { ...f, exercises: [...f.exercises, ...toAdd] }
-    })
-    setPickerOpen(false)
-  }
-
-  function removeExercise(ri: number) {
-    setForm((f) => ({ ...f, exercises: f.exercises.filter((_, i) => i !== ri) }))
-  }
-  function addSet(ri: number) {
-    setForm((f) => ({
-      ...f,
-      exercises: f.exercises.map((r, i) => {
-        if (i !== ri) return r
-        const last = r.sets[r.sets.length - 1]
-        const next = last ? { ...last } : { weight: 0, reps: 0 }
-        return { ...r, sets: [...r.sets, next] }
-      }),
-    }))
-  }
-  function removeSet(ri: number, si: number) {
-    setForm((f) => ({
-      ...f,
-      exercises: f.exercises.map((r, i) =>
-        i === ri ? { ...r, sets: r.sets.filter((_, j) => j !== si) } : r,
-      ),
-    }))
-  }
-  function updateSet(ri: number, si: number, patch: Partial<SetEntry>) {
-    setForm((f) => ({
-      ...f,
-      exercises: f.exercises.map((r, i) =>
-        i === ri
-          ? { ...r, sets: r.sets.map((s, j) => (j === si ? { ...s, ...patch } : s)) }
-          : r,
-      ),
-    }))
-  }
-
-  function metricFor(exId: string): ExerciseMetric {
-    return exercises.find((e) => e.id === exId)?.metric ?? 'weight_reps'
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -312,37 +254,12 @@ export function RoutineLogFormPage() {
 
           <div className="field">
             <span className="field__label">운동</span>
-            <div className="routine-editor">
-              {form.exercises.map((r, ri) => (
-                <div className="routine-ex" key={ri}>
-                  <div className="routine-ex__head">
-                    <span className="routine-ex__name">{exerciseName(r.exerciseId)}</span>
-                    <button type="button" className="routine-ex__remove" onClick={() => removeExercise(ri)} aria-label="운동 제거">✕</button>
-                  </div>
-                  {r.sets.map((set, si) => (
-                    <SetRow
-                      key={si}
-                      index={si}
-                      metric={metricFor(r.exerciseId)}
-                      set={set}
-                      onChange={(patch) => updateSet(ri, si, patch)}
-                      onRemove={() => removeSet(ri, si)}
-                    />
-                  ))}
-                  <button type="button" className="routine-ex__add-set" onClick={() => addSet(ri)}>
-                    + 세트 추가
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="add-exercise-btn"
-                onClick={() => setPickerOpen(true)}
-                disabled={exercises.length === 0}
-              >
-                + 운동 추가
-              </button>
-            </div>
+            <RoutineEditor
+              value={form.exercises}
+              onChange={(exercisesList) => setForm((f) => ({ ...f, exercises: exercisesList }))}
+              exercises={exercises}
+              lastSetsByExercise={lastSetsByExercise}
+            />
           </div>
 
           <label className="field">
@@ -361,14 +278,6 @@ export function RoutineLogFormPage() {
           </div>
         </form>
       </div>
-
-      <ExercisePicker
-        open={pickerOpen}
-        exercises={exercises}
-        excludeIds={[]}
-        onClose={() => setPickerOpen(false)}
-        onConfirm={handlePickerConfirm}
-      />
 
       <ConfirmDialog
         open={confirmClose}
