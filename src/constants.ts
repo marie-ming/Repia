@@ -104,6 +104,21 @@ export function formatSet(metric: ExerciseMetric, s: SetEntry): string {
   }
 }
 
+// 여러 세트 중 측정 방식별 "최고 기록" 한 줄 (없으면 null)
+export function bestSetLabel(metric: ExerciseMetric, sets: SetEntry[]): string | null {
+  if (sets.length === 0) return null
+  switch (metric) {
+    case 'reps':
+      return `최고 ${Math.max(...sets.map((s) => s.reps))}회`
+    case 'time':
+      return `최장 ${formatDuration(Math.max(...sets.map((s) => s.seconds ?? 0)))}`
+    case 'distance_time':
+      return `최장 ${Math.max(...sets.map((s) => s.distance ?? 0))}km`
+    default:
+      return `최고 ${Math.max(...sets.map((s) => s.weight))}kg`
+  }
+}
+
 // Legacy grip codes → Korean labels (grip is now free text).
 const GRIP_LEGACY_LABELS: Record<string, string> = {
   none: '',

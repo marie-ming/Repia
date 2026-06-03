@@ -13,6 +13,7 @@ import { RoutineLogFormPage } from './pages/RoutineLogFormPage.tsx'
 import { RoutineLogDetailPage } from './pages/RoutineLogDetailPage.tsx'
 import { RoutineTemplateFormPage } from './pages/RoutineTemplateFormPage.tsx'
 import { RoutineTemplateDetailPage } from './pages/RoutineTemplateDetailPage.tsx'
+import { ExerciseHistoryPage } from './pages/ExerciseHistoryPage.tsx'
 import { Splash } from './components/Splash.tsx'
 import { ModeContext } from './components/ModeContext.tsx'
 import { tabsForMode } from './navigation.tsx'
@@ -72,6 +73,7 @@ function App() {
           <Route path="/members/:id" element={<MemberDetailPage />} />
           <Route path="/exercises/new" element={<ExerciseFormPage />} />
           <Route path="/exercises/:id/edit" element={<ExerciseFormPage />} />
+          <Route path="/exercises/:id/history" element={<ExerciseHistoryPage />} />
           <Route path="/sessions/new" element={<SessionFormPage />} />
           <Route path="/sessions/:id/edit" element={<SessionFormPage />} />
           <Route path="/logs/:id" element={<RoutineLogDetailPage />} />

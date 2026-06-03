@@ -131,6 +131,29 @@ export async function seedDemoData(): Promise<void> {
 
   // routine templates (개인 루틴)
   const byName = (n: string) => exs.find((e) => e.name === n)!
+
+  // 단골 운동: 더보기/추세 확인용 다회 완료 기록 (점진적 중량 증가)
+  const fav = byName('벤치프레스')
+  for (let k = 12; k >= 1; k--) {
+    const base = 50 + (12 - k) * 2.5
+    await routineLogsRepo.create({
+      title: '상체 데이',
+      date: toISODate(addDays(today, -k * 5)),
+      time: '',
+      status: 'completed',
+      exercises: [
+        {
+          exerciseId: fav.id,
+          sets: [
+            { weight: base, reps: 10 },
+            { weight: base + 5, reps: 8 },
+            { weight: base + 10, reps: 6 },
+          ],
+        },
+      ],
+      memo: '',
+    })
+  }
   const templates = [
     {
       title: '하체 루틴',
