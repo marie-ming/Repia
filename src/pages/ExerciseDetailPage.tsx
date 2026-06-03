@@ -217,7 +217,7 @@ export function ExerciseDetailPage() {
                 <button
                   type="button"
                   className="exrec-more"
-                  onClick={() => showToast('전체 기록 보기는 곧 추가됩니다')}
+                  onClick={() => navigate(`/exercises/${exercise.id}/history`)}
                 >
                   더보기
                   <ChevronRightIcon className="exrec-more__icon" />

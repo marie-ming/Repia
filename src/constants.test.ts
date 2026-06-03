@@ -10,6 +10,7 @@ import {
   gripLabel,
   formatDuration,
   formatSet,
+  bestSetLabel,
 } from './constants.ts'
 
 describe('회원 상태', () => {
@@ -119,5 +120,32 @@ describe('formatSet (측정 방식별)', () => {
     expect(formatSet('distance_time', { weight: 0, reps: 0, seconds: 1800, distance: 5 })).toBe(
       '5km · 30:00',
     )
+  })
+})
+
+describe('bestSetLabel', () => {
+  it('빈 배열이면 null', () => {
+    expect(bestSetLabel('weight_reps', [])).toBeNull()
+  })
+  it('weight_reps 최고 중량', () => {
+    expect(
+      bestSetLabel('weight_reps', [
+        { weight: 80, reps: 5 },
+        { weight: 120, reps: 3 },
+      ]),
+    ).toBe('최고 120kg')
+  })
+  it('reps 최고 횟수', () => {
+    expect(bestSetLabel('reps', [{ weight: 0, reps: 12 }, { weight: 0, reps: 20 }])).toBe('최고 20회')
+  })
+  it('time 최장 시간', () => {
+    expect(bestSetLabel('time', [{ weight: 0, reps: 0, seconds: 45 }, { weight: 0, reps: 0, seconds: 90 }])).toBe(
+      '최장 1:30',
+    )
+  })
+  it('distance_time 최장 거리', () => {
+    expect(
+      bestSetLabel('distance_time', [{ weight: 0, reps: 0, distance: 3, seconds: 1200 }]),
+    ).toBe('최장 3km')
   })
 })
