@@ -30,8 +30,8 @@ const trainerTabs: TabItem[] = [
 
 const personalTabs: TabItem[] = [
   { path: '/', label: '홈', icon: <HomeIcon />, element: <PersonalHomePage /> },
-  { path: '/exercises', label: '운동', icon: <DumbbellIcon />, element: <ExercisesPage /> },
   { path: '/routines', label: '루틴', icon: <ClipboardListIcon />, element: <RoutinesPage /> },
+  { path: '/exercises', label: '운동', icon: <DumbbellIcon />, element: <ExercisesPage /> },
   { path: '/settings', label: '설정', icon: <SettingsIcon />, element: <SettingsPage /> },
 ]
 

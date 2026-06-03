@@ -51,4 +51,27 @@ describe('RoutinesPage', () => {
     await userEvent.click(screen.getByLabelText('루틴 추가'))
     expect(screen.getByTestId('loc')).toHaveTextContent('/routines/new')
   })
+
+  it('카테고리 필터: 사용된 카테고리 칩만 노출 + 필터링', async () => {
+    await routineTemplatesRepo.create({ title: '하체 루틴', categories: ['lower'] })
+    await routineTemplatesRepo.create({ title: '상체 루틴', categories: ['upper'] })
+    renderPage()
+    await screen.findByText('하체 루틴')
+    // 사용된 카테고리(하체/상체)만 칩으로 노출, 안 쓰인 '등'은 없음
+    expect(screen.getByRole('button', { name: '하체' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '등' })).not.toBeInTheDocument()
+    // 하체 필터 → 상체 루틴 숨김
+    await userEvent.click(screen.getByRole('button', { name: '하체' }))
+    expect(screen.getByText('하체 루틴')).toBeInTheDocument()
+    expect(screen.queryByText('상체 루틴')).not.toBeInTheDocument()
+  })
+
+  it('카테고리 배지 표시', async () => {
+    await routineTemplatesRepo.create({ title: 'x', categories: ['lower', 'core'] })
+    renderPage()
+    await screen.findByText('x')
+    const card = document.querySelector('.log-card__titlerow')!
+    expect(card.textContent).toContain('하체')
+    expect(card.textContent).toContain('코어')
+  })
 })

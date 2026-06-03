@@ -50,4 +50,18 @@ describe('RoutineTemplateFormPage', () => {
     expect(await screen.findByDisplayValue('기존 루틴')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()
   })
+
+  it('카테고리 최대 3개 선택, 4번째 비활성 + 저장 시 반영', async () => {
+    renderForm('/routines/new')
+    await userEvent.type(await screen.findByPlaceholderText(/제목 입력/), '풀바디')
+    await userEvent.click(screen.getByRole('button', { name: '상체' }))
+    await userEvent.click(screen.getByRole('button', { name: '하체' }))
+    await userEvent.click(screen.getByRole('button', { name: '코어' }))
+    expect(screen.getByRole('button', { name: '등' })).toHaveClass('chip--disabled')
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(async () => {
+      const all = await routineTemplatesRepo.findAll()
+      expect(all[0].categories.sort()).toEqual(['core', 'lower', 'upper'])
+    })
+  })
 })
