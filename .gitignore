@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Playwright
+/test-results
+/playwright-report
+/playwright/.cache
+
 # Claude Code local preview/launch config
 .claude
 
