@@ -705,21 +705,9 @@ button {
     font-variant-numeric: tabular-nums;
   }
 
-  &__body {
+  &__sets {
     flex: 1;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-
-  &__member {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  &__sets {
     font-size: 0.88rem;
     color: var(--color-text);
   }
@@ -878,12 +866,6 @@ button {
     flex: 1;
     font-variant-numeric: tabular-nums;
     color: var(--color-text-secondary);
-  }
-
-  &__title {
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: var(--color-text);
   }
 
   &__exercises {
