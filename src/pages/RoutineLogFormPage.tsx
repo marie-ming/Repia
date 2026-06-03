@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type {
   RoutineLog,
   RoutineLogStatus,
   RoutineExercise,
+  SetEntry,
   Exercise,
 } from '../db/types.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
@@ -52,13 +53,18 @@ export function RoutineLogFormPage() {
   const initRef = useRef<FormData>(emptyForm(defaultDate))
   const [loaded, setLoaded] = useState(!isEdit)
   const [exercises, setExercises] = useState<Exercise[]>([])
+  const [history, setHistory] = useState<RoutineLog[]>([])
   const [log, setLog] = useState<RoutineLog | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
 
   const load = useCallback(async () => {
-    const exs = await exercisesRepo.findAll()
+    const [exs, allLogs] = await Promise.all([
+      exercisesRepo.findAll(),
+      routineLogsRepo.findAll(),
+    ])
     setExercises(exs)
+    setHistory(allLogs)
     if (isEdit && id) {
       const l = await routineLogsRepo.findById(id)
       if (l) {
@@ -96,13 +102,35 @@ export function RoutineLogFormPage() {
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
   const canSave = !!form.date && (!isEdit || isDirty)
 
+  // 운동별 가장 최근 기록의 세트 구성 전체 (현재 편집 중인 기록·취소 제외)
+  const lastSetsByExercise = useMemo(() => {
+    const map = new Map<string, SetEntry[]>()
+    const sorted = [...history]
+      .filter((l) => l.id !== id && l.status !== 'cancelled')
+      .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
+    for (const l of sorted) {
+      for (const ex of l.exercises) {
+        if (!map.has(ex.exerciseId) && ex.sets.length > 0) {
+          map.set(ex.exerciseId, ex.sets)
+        }
+      }
+    }
+    return map
+  }, [history, id])
+
   function exerciseName(exId: string): string {
     return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
   }
 
   function handlePickerConfirm(ids: string[]) {
     setForm((f) => {
-      const toAdd = ids.map((x) => ({ exerciseId: x, sets: [{ weight: 0, reps: 0 }] }))
+      const toAdd = ids.map((x) => {
+        const prev = lastSetsByExercise.get(x)
+        return {
+          exerciseId: x,
+          sets: prev ? prev.map((s) => ({ ...s })) : [{ weight: 0, reps: 0 }],
+        }
+      })
       return { ...f, exercises: [...f.exercises, ...toAdd] }
     })
     setPickerOpen(false)
