@@ -16,7 +16,8 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      // 모바일 전용 PWA — 모바일 뷰포트로 테스트
+      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 } },
     },
   ],
   webServer: {
