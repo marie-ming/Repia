@@ -40,10 +40,15 @@ export function TrainerHomePage() {
     load()
   }, [load])
 
-  const markedDates = useMemo(
-    () => new Set(sessions.filter((s) => s.status !== 'cancelled').map((s) => s.date)),
-    [sessions],
-  )
+  // 트레이너는 수업 유무만 dot 1개로 표시 (개수 무의미)
+  const markedCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const s of sessions) {
+      if (s.status === 'cancelled') continue
+      m.set(s.date, 1)
+    }
+    return m
+  }, [sessions])
 
   const daySessions = useMemo(
     () =>
@@ -78,7 +83,7 @@ export function TrainerHomePage() {
         <Calendar
           viewMonth={viewMonth}
           selectedDate={selectedDate}
-          markedDates={markedDates}
+          markedCounts={markedCounts}
           onSelect={setSelectedDate}
           onShiftMonth={shiftMonth}
           onToday={goToday}

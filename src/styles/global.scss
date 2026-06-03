@@ -653,6 +653,118 @@ button {
   color: var(--color-text-secondary);
 }
 
+// 상세 바 더보기(케밥) 버튼
+.detail__menu {
+  display: grid;
+  place-items: center;
+  color: var(--color-text);
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// 액션 시트 메뉴
+.action-menu {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+
+  &__item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    text-align: left;
+    padding: 0.9rem 0.25rem;
+    font-size: 1rem;
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &--danger {
+      color: var(--color-primary);
+    }
+  }
+
+  &__icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+  }
+
+  &__item--danger &__icon {
+    color: var(--color-primary);
+  }
+}
+
+// 개인 홈 운동 기록 카드 (컴팩트)
+.log-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-bottom: 5rem;
+}
+
+.log-card {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.55rem 0.8rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+  text-align: left;
+
+  &--cancelled {
+    opacity: 0.5;
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  &__title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  &__exercises {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+  }
+
+  &__when {
+    font-size: 0.68rem;
+    color: var(--color-text-secondary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
 // Session history list (member detail)
 .history-list {
   list-style: none;
@@ -693,6 +805,12 @@ button {
     flex: 1;
     font-variant-numeric: tabular-nums;
     color: var(--color-text-secondary);
+  }
+
+  &__title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--color-text);
   }
 
   &__exercises {
@@ -1408,11 +1526,16 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
     }
   }
 
-  &__dot {
+  &__dots {
     position: absolute;
     bottom: 0.3rem;
     left: 50%;
     transform: translateX(-50%);
+    display: flex;
+    gap: 0.12rem;
+  }
+
+  &__dot {
     width: 0.3rem;
     height: 0.3rem;
     border-radius: 50%;
@@ -1440,6 +1563,11 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
   flex-direction: column;
   gap: 0.6rem;
   padding-bottom: 5rem;
+}
+
+// 바텀시트 안에서는 FAB 회피용 큰 하단 여백 대신 상단과 균형 맞춘 여백 + safe-area
+.sheet .session-list {
+  padding-bottom: calc(1.25rem + var(--safe-bottom));
 }
 
 .session-item {
@@ -1482,7 +1610,8 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
   border-radius: 0.4rem;
   flex-shrink: 0;
 
-  &--reserved {
+  &--reserved,
+  &--planned {
     background: rgba(58, 123, 213, 0.18);
     color: #6ba3e8;
   }

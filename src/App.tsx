@@ -9,6 +9,8 @@ import { DataSettingsPage } from './pages/DataSettingsPage.tsx'
 import { MemberDetailPage } from './pages/MemberDetailPage.tsx'
 import { ExerciseFormPage } from './pages/ExerciseFormPage.tsx'
 import { SessionFormPage } from './pages/SessionFormPage.tsx'
+import { RoutineLogFormPage } from './pages/RoutineLogFormPage.tsx'
+import { RoutineLogDetailPage } from './pages/RoutineLogDetailPage.tsx'
 import { Splash } from './components/Splash.tsx'
 import { ModeContext } from './components/ModeContext.tsx'
 import { tabsForMode } from './navigation.tsx'
@@ -70,6 +72,9 @@ function App() {
           <Route path="/exercises/:id/edit" element={<ExerciseFormPage />} />
           <Route path="/sessions/new" element={<SessionFormPage />} />
           <Route path="/sessions/:id/edit" element={<SessionFormPage />} />
+          <Route path="/logs/:id" element={<RoutineLogDetailPage />} />
+          <Route path="/logs/new" element={<RoutineLogFormPage />} />
+          <Route path="/logs/:id/edit" element={<RoutineLogFormPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

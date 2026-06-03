@@ -112,6 +112,44 @@ export function PlusIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function MoreIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="5" cy="12" r="2.2" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="2.2" fill="currentColor" stroke="none" />
+    </Icon>
+  )
+}
+
+export function PencilIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M17 3a2.828 2.828 0 1 1 4 4L7 21l-4 1 1-4Z" />
+    </Icon>
+  )
+}
+
+export function CopyIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </Icon>
+  )
+}
+
+export function TrashIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M3 6h18" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <line x1="10" x2="10" y1="11" y2="17" />
+      <line x1="14" x2="14" y1="11" y2="17" />
+    </Icon>
+  )
+}
+
 export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon {...props}>

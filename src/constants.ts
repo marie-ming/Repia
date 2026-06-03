@@ -1,4 +1,10 @@
-import type { MemberStatus, ExerciseCategory, Equipment, SessionStatus } from './db/types.ts'
+import type {
+  MemberStatus,
+  ExerciseCategory,
+  Equipment,
+  SessionStatus,
+  RoutineLogStatus,
+} from './db/types.ts'
 
 export const MEMBER_STATUS_OPTIONS: { value: MemberStatus; label: string }[] = [
   { value: 'active', label: '진행중' },
@@ -13,6 +19,18 @@ export const SESSION_STATUS_OPTIONS: { value: SessionStatus; label: string }[] =
 
 export const SESSION_STATUS_LABELS: Record<SessionStatus, string> = {
   reserved: '예약',
+  completed: '완료',
+  cancelled: '취소',
+}
+
+export const ROUTINE_LOG_STATUS_OPTIONS: { value: RoutineLogStatus; label: string }[] = [
+  { value: 'planned', label: '예정' },
+  { value: 'completed', label: '완료' },
+  { value: 'cancelled', label: '취소' },
+]
+
+export const ROUTINE_LOG_STATUS_LABELS: Record<RoutineLogStatus, string> = {
+  planned: '예정',
   completed: '완료',
   cancelled: '취소',
 }
