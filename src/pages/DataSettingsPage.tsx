@@ -137,20 +137,22 @@ export function DataSettingsPage() {
           />
         </section>
 
-        <section className="settings-section">
-          <h2 className="settings-section__title">데모 데이터</h2>
-          <p className="settings-section__desc settings-section__desc--warn">
-            현재 데이터를 지우고 검증용 회원·운동·수업·기록을 채웁니다.
-          </p>
-          <button
-            type="button"
-            className="btn btn--ghost"
-            onClick={handleSeed}
-            disabled={busy}
-          >
-            데모 데이터 채우기
-          </button>
-        </section>
+        {__DEMO_ENABLED__ && (
+          <section className="settings-section">
+            <h2 className="settings-section__title">데모 데이터</h2>
+            <p className="settings-section__desc settings-section__desc--warn">
+              현재 데이터를 지우고 검증용 회원·운동·수업·기록을 채웁니다.
+            </p>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={handleSeed}
+              disabled={busy}
+            >
+              데모 데이터 채우기
+            </button>
+          </section>
+        )}
 
         <section className="settings-section">
           <h2 className="settings-section__title">설정 및 데이터 초기화</h2>
