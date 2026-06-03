@@ -11,6 +11,7 @@ function makeEx(over: Partial<Exercise>): Exercise {
     categories: over.categories ?? [],
     equipment: over.equipment ?? null,
     grip: '',
+    metric: over.metric ?? 'weight_reps',
     photos: [],
     description: '',
     createdAt: '2026-01-01T00:00:00.000Z',

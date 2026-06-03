@@ -1,82 +1,70 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import type {
-  Session,
-  SessionStatus,
+  RoutineTemplate,
   RoutineExercise,
+  RoutineLog,
   SetEntry,
-  ExerciseMetric,
-  Member,
   Exercise,
+  ExerciseCategory,
+  ExerciseMetric,
 } from '../db/types.ts'
-import { sessionsRepo } from '../db/repositories/sessions.ts'
-import { membersRepo } from '../db/repositories/members.ts'
+import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
+import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
-import { Select } from '../components/Select.tsx'
 import { ExercisePicker } from '../components/ExercisePicker.tsx'
 import { SetRow } from '../components/SetRow.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon } from '../components/icons.tsx'
-import { SESSION_STATUS_OPTIONS } from '../constants.ts'
-import { todayISODate } from '../utils/date.ts'
+import { EXERCISE_CATEGORY_OPTIONS } from '../constants.ts'
+
+const MAX_CATEGORIES = 3
 
 interface FormData {
-  memberId: string | null
-  date: string
-  time: string
-  status: SessionStatus
-  routine: RoutineExercise[]
+  title: string
+  categories: ExerciseCategory[]
+  exercises: RoutineExercise[]
   memo: string
 }
 
-function emptyForm(date: string): FormData {
-  return { memberId: null, date, time: '', status: 'reserved', routine: [], memo: '' }
+function emptyForm(): FormData {
+  return { title: '', categories: [], exercises: [], memo: '' }
 }
 
-function fromSession(s: Session): FormData {
-  return {
-    memberId: s.memberId,
-    date: s.date,
-    time: s.time,
-    status: s.status,
-    routine: s.routine,
-    memo: s.memo,
-  }
+function fromTemplate(t: RoutineTemplate): FormData {
+  return { title: t.title, categories: t.categories, exercises: t.exercises, memo: t.memo }
 }
 
-export function SessionFormPage() {
+export function RoutineTemplateFormPage() {
   const { id } = useParams<{ id?: string }>()
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const showToast = useToast()
   const isEdit = !!id
-  const defaultDate = searchParams.get('date') ?? todayISODate()
 
-  const [form, setForm] = useState<FormData>(() => emptyForm(defaultDate))
-  const initRef = useRef<FormData>(emptyForm(defaultDate))
+  const [form, setForm] = useState<FormData>(emptyForm)
+  const initRef = useRef<FormData>(emptyForm())
   const [loaded, setLoaded] = useState(!isEdit)
-  const [members, setMembers] = useState<Member[]>([])
   const [exercises, setExercises] = useState<Exercise[]>([])
-  const [session, setSession] = useState<Session | null>(null)
+  const [history, setHistory] = useState<RoutineLog[]>([])
+  const [template, setTemplate] = useState<RoutineTemplate | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
-  const [confirmDel, setConfirmDel] = useState(false)
 
   const load = useCallback(async () => {
-    const [m, e] = await Promise.all([
-      membersRepo.findAll({ sortBy: 'name' }),
+    const [exs, allLogs] = await Promise.all([
       exercisesRepo.findAll(),
+      routineLogsRepo.findAll(),
     ])
-    setMembers(m)
-    setExercises(e)
+    setExercises(exs)
+    setHistory(allLogs)
     if (isEdit && id) {
-      const s = await sessionsRepo.findById(id)
-      if (s) {
-        const initial = fromSession(s)
+      const t = await routineTemplatesRepo.findById(id)
+      if (t) {
+        const initial = fromTemplate(t)
         setForm(initial)
         initRef.current = initial
-        setSession(s)
+        setTemplate(t)
       }
     }
     setLoaded(true)
@@ -87,27 +75,59 @@ export function SessionFormPage() {
   }, [load])
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
-  const canSave = !!form.memberId && !!form.date && (!isEdit || isDirty)
+  const canSave = form.title.trim().length > 0 && (!isEdit || isDirty)
+
+  // 운동별 가장 최근 기록의 세트 구성 (취소 제외)
+  const lastSetsByExercise = useMemo(() => {
+    const map = new Map<string, SetEntry[]>()
+    const sorted = [...history]
+      .filter((l) => l.status !== 'cancelled')
+      .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
+    for (const l of sorted) {
+      for (const ex of l.exercises) {
+        if (!map.has(ex.exerciseId) && ex.sets.length > 0) {
+          map.set(ex.exerciseId, ex.sets)
+        }
+      }
+    }
+    return map
+  }, [history])
 
   function exerciseName(exId: string): string {
     return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
   }
 
+  function toggleCategory(value: ExerciseCategory) {
+    setForm((f) => {
+      if (f.categories.includes(value)) {
+        return { ...f, categories: f.categories.filter((c) => c !== value) }
+      }
+      if (f.categories.length >= MAX_CATEGORIES) return f
+      return { ...f, categories: [...f.categories, value] }
+    })
+  }
+
   function handlePickerConfirm(ids: string[]) {
     setForm((f) => {
-      const toAdd = ids.map((x) => ({ exerciseId: x, sets: [{ weight: 0, reps: 0 }] }))
-      return { ...f, routine: [...f.routine, ...toAdd] }
+      const toAdd = ids.map((x) => {
+        const prev = lastSetsByExercise.get(x)
+        return {
+          exerciseId: x,
+          sets: prev ? prev.map((s) => ({ ...s })) : [{ weight: 0, reps: 0 }],
+        }
+      })
+      return { ...f, exercises: [...f.exercises, ...toAdd] }
     })
     setPickerOpen(false)
   }
 
   function removeExercise(ri: number) {
-    setForm((f) => ({ ...f, routine: f.routine.filter((_, i) => i !== ri) }))
+    setForm((f) => ({ ...f, exercises: f.exercises.filter((_, i) => i !== ri) }))
   }
   function addSet(ri: number) {
     setForm((f) => ({
       ...f,
-      routine: f.routine.map((r, i) => {
+      exercises: f.exercises.map((r, i) => {
         if (i !== ri) return r
         const last = r.sets[r.sets.length - 1]
         const next = last ? { ...last } : { weight: 0, reps: 0 }
@@ -118,7 +138,7 @@ export function SessionFormPage() {
   function removeSet(ri: number, si: number) {
     setForm((f) => ({
       ...f,
-      routine: f.routine.map((r, i) =>
+      exercises: f.exercises.map((r, i) =>
         i === ri ? { ...r, sets: r.sets.filter((_, j) => j !== si) } : r,
       ),
     }))
@@ -126,7 +146,7 @@ export function SessionFormPage() {
   function updateSet(ri: number, si: number, patch: Partial<SetEntry>) {
     setForm((f) => ({
       ...f,
-      routine: f.routine.map((r, i) =>
+      exercises: f.exercises.map((r, i) =>
         i === ri
           ? { ...r, sets: r.sets.map((s, j) => (j === si ? { ...s, ...patch } : s)) }
           : r,
@@ -140,23 +160,19 @@ export function SessionFormPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!canSave || !form.memberId) return
-    const member = members.find((m) => m.id === form.memberId)
+    if (!canSave) return
     const input = {
-      memberId: form.memberId,
-      memberNameSnapshot: member?.name ?? '',
-      date: form.date,
-      time: form.time,
-      status: form.status,
-      routine: form.routine,
+      title: form.title.trim(),
+      categories: form.categories,
+      exercises: form.exercises,
       memo: form.memo,
     }
     if (isEdit && id) {
-      await sessionsRepo.update(id, input)
-      showToast('수업이 수정되었습니다')
+      await routineTemplatesRepo.update(id, input)
+      showToast('루틴이 수정되었습니다')
     } else {
-      await sessionsRepo.create(input)
-      showToast('수업이 추가되었습니다')
+      await routineTemplatesRepo.create(input)
+      showToast('루틴이 추가되었습니다')
     }
     navigate(-1)
   }
@@ -166,37 +182,25 @@ export function SessionFormPage() {
     else navigate(-1)
   }
 
-  async function doDelete() {
-    if (!id) return
-    await sessionsRepo.delete(id)
-    showToast('수업이 삭제되었습니다')
-    navigate('/', { replace: true })
-  }
-
   if (!loaded) {
     return <div className="detail"><p className="page__placeholder">불러오는 중...</p></div>
   }
 
-  if (isEdit && !session) {
+  if (isEdit && !template) {
     return (
       <div className="detail">
         <header className="detail__bar">
-          <button type="button" className="detail__back" onClick={() => navigate('/')} aria-label="뒤로">
+          <button type="button" className="detail__back" onClick={() => navigate('/routines')} aria-label="뒤로">
             <ChevronLeftIcon />
           </button>
           <span className="detail__bar-spacer" />
         </header>
         <div className="empty">
-          <p className="empty__title">수업을 찾을 수 없습니다</p>
+          <p className="empty__title">루틴을 찾을 수 없습니다</p>
         </div>
       </div>
     )
   }
-
-  // 수업종료 회원은 숨김. 단, 수정 모드에서 이미 선택된 회원이 종료된 경우 그 옵션은 유지.
-  const memberOptions = members
-    .filter((m) => m.status !== 'ended' || m.id === form.memberId)
-    .map((m) => ({ value: m.id, label: m.name }))
 
   return (
     <div className="detail">
@@ -204,69 +208,47 @@ export function SessionFormPage() {
         <button type="button" className="detail__back" onClick={handleBack} aria-label="뒤로">
           <ChevronLeftIcon />
         </button>
-        <h1 className="detail__bar-title">{isEdit ? '수업 수정' : '수업 추가'}</h1>
+        <h1 className="detail__bar-title">{isEdit ? '루틴 수정' : '루틴 추가'}</h1>
         <span className="detail__bar-spacer" />
       </header>
 
       <div className="detail__body">
         <form className="member-form" onSubmit={handleSubmit}>
-          <div className="field">
-            <span className="field__label">회원 *</span>
-            <Select
-              value={form.memberId}
-              options={memberOptions}
-              onChange={(v) => setForm((f) => ({ ...f, memberId: v }))}
-              placeholder="회원 선택"
-              searchable
-              searchPlaceholder="회원 이름 검색"
+          <label className="field">
+            <span className="field__label">제목 *</span>
+            <input
+              className="field__input"
+              type="text"
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              placeholder="제목 입력 (예: 하체 루틴)"
             />
-          </div>
-
-          <div className="field-row">
-            <label className="field">
-              <span className="field__label">날짜</span>
-              <input
-                className="field__input"
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              />
-            </label>
-            <label className="field">
-              <span className="field__label">시간</span>
-              <span className="time-input">
-                <input
-                  className="field__input"
-                  type="time"
-                  value={form.time}
-                  data-empty={form.time ? undefined : 'true'}
-                  onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
-                />
-                {!form.time && <span className="time-input__placeholder">시간 선택</span>}
-              </span>
-            </label>
-          </div>
+          </label>
 
           <div className="field">
-            <span className="field__label">상태</span>
-            <div className="segmented">
-              {SESSION_STATUS_OPTIONS.map((opt) => (
-                <button
-                  type="button"
-                  key={opt.value}
-                  className={form.status === opt.value ? 'segmented__item segmented__item--active' : 'segmented__item'}
-                  onClick={() => setForm((f) => ({ ...f, status: opt.value }))}
-                >
-                  {opt.label}
-                </button>
-              ))}
+            <span className="field__label">카테고리 (최대 {MAX_CATEGORIES}개)</span>
+            <div className="chips chips--wrap">
+              {EXERCISE_CATEGORY_OPTIONS.map((opt) => {
+                const selected = form.categories.includes(opt.value)
+                const disabled = !selected && form.categories.length >= MAX_CATEGORIES
+                return (
+                  <button
+                    type="button"
+                    key={opt.value}
+                    className={selected ? 'chip chip--active' : disabled ? 'chip chip--disabled' : 'chip'}
+                    onClick={() => toggleCategory(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
           <div className="field">
             <span className="field__label">운동</span>
             <div className="routine-editor">
-              {form.routine.map((r, ri) => (
+              {form.exercises.map((r, ri) => (
                 <div className="routine-ex" key={ri}>
                   <div className="routine-ex__head">
                     <span className="routine-ex__name">{exerciseName(r.exerciseId)}</span>
@@ -304,18 +286,13 @@ export function SessionFormPage() {
               className="field__input field__textarea"
               value={form.memo}
               onChange={(e) => setForm((f) => ({ ...f, memo: e.target.value }))}
-              placeholder="수업 메모"
+              placeholder="루틴 설명, 주의사항 등"
               rows={2}
             />
           </label>
 
           <div className="member-form__actions">
             <button type="submit" className="btn btn--primary" disabled={!canSave}>저장</button>
-            {isEdit && (
-              <button type="button" className="btn btn--danger-ghost" onClick={() => setConfirmDel(true)}>
-                삭제
-              </button>
-            )}
           </div>
         </form>
       </div>
@@ -337,15 +314,6 @@ export function SessionFormPage() {
         danger
         onConfirm={() => { setConfirmClose(false); navigate(-1) }}
         onCancel={() => setConfirmClose(false)}
-      />
-
-      <ConfirmDialog
-        open={confirmDel}
-        title="수업을 삭제할까요?"
-        confirmLabel="삭제"
-        danger
-        onConfirm={doDelete}
-        onCancel={() => setConfirmDel(false)}
       />
     </div>
   )

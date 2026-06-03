@@ -25,6 +25,8 @@ export function normalize(
 
   if (typeof ex.grip !== 'string') ex.grip = ''
 
+  if (!ex.metric) ex.metric = 'weight_reps'
+
   return ex
 }
 
@@ -75,6 +77,7 @@ export const exercisesRepo = {
       categories: data.categories ?? [],
       equipment: data.equipment ?? null,
       grip: data.grip ?? '',
+      metric: data.metric ?? 'weight_reps',
       photos: data.photos ?? [],
       description: data.description ?? '',
       createdAt: now,
@@ -96,6 +99,12 @@ export const exercisesRepo = {
     }
     await db.put(STORES.EXERCISES, updated)
     return updated
+  },
+
+  // 수업/기록/루틴 어디서든 참조되면 true (측정 방식 변경 잠금 등에 사용)
+  async isInUse(id: string): Promise<boolean> {
+    const db = await getDB()
+    return (await countExerciseUsage(db, id)) > 0
   },
 
   // Throws with a user-facing message if the exercise is still in use.

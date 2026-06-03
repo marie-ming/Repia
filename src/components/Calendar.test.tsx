@@ -7,7 +7,7 @@ function defaultProps(over: Partial<Parameters<typeof Calendar>[0]> = {}) {
   return {
     viewMonth: new Date(2026, 5, 1), // 2026-06-01 (Monday)
     selectedDate: '2026-06-15',
-    markedDates: new Set<string>(),
+    markedCounts: new Map<string, number>(),
     onSelect: vi.fn(),
     onShiftMonth: vi.fn(),
     onToday: vi.fn(),
@@ -74,12 +74,20 @@ describe('Calendar', () => {
     expect(onToday).toHaveBeenCalledOnce()
   })
 
-  it('markedDates에 있는 날짜는 dot 표시', () => {
+  it('markedCounts에 있는 날짜는 개수만큼 dot 표시 (최대 3)', () => {
     const { container } = render(
-      <Calendar {...defaultProps({ markedDates: new Set(['2026-06-10']) })} />,
+      <Calendar
+        {...defaultProps({
+          markedCounts: new Map([
+            ['2026-06-10', 1],
+            ['2026-06-11', 2],
+            ['2026-06-12', 5], // 5개여도 3개까지만
+          ]),
+        })}
+      />,
     )
     const dots = container.querySelectorAll('.calendar__dot')
-    expect(dots.length).toBe(1)
+    expect(dots.length).toBe(1 + 2 + 3)
   })
 
   it('마지막 주가 모두 다음 달이면 그 주 잘림', () => {

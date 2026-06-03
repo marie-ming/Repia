@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { ExerciseFormPage } from './ExerciseFormPage.tsx'
@@ -62,7 +62,7 @@ describe('ExerciseFormPage — 신규', () => {
     expect(screen.getByRole('button', { name: '어깨' })).not.toHaveClass('chip--disabled')
   })
 
-  it('삭제 버튼은 신규 모드에서 안 보임', () => {
+  it('삭제 버튼 없음 (삭제는 상세 케밥에서)', () => {
     renderForm('/exercises/new')
     expect(screen.queryByRole('button', { name: '삭제' })).not.toBeInTheDocument()
   })
@@ -103,36 +103,25 @@ describe('ExerciseFormPage — 수정', () => {
     expect(await screen.findByText(/저장하지 않은 변경사항/)).toBeInTheDocument()
   })
 
-  it('삭제 → 다이얼로그 → 삭제 완료', async () => {
-    const ex = await exercisesRepo.create({ name: '삭제할' })
+  it('기록 없으면 측정 방식 Select 노출', async () => {
+    const ex = await exercisesRepo.create({ name: '운동', metric: 'reps' })
     renderForm(`/exercises/${ex.id}/edit`)
-    await screen.findByDisplayValue('삭제할')
-    await userEvent.click(screen.getByRole('button', { name: '삭제' }))
-    const dialog = await screen.findByRole('alertdialog')
-    await userEvent.click(within(dialog).getByRole('button', { name: '삭제' }))
-    await waitFor(async () => {
-      expect(await exercisesRepo.findById(ex.id)).toBeUndefined()
-    })
+    await screen.findByDisplayValue('운동')
+    expect(screen.getByText('측정 방식')).toBeInTheDocument()
+    expect(screen.queryByText('기록이 있어 변경할 수 없습니다')).not.toBeInTheDocument()
   })
 
-  it('사용 중인 운동 삭제 시도 → blocked 안내', async () => {
-    const ex = await exercisesRepo.create({ name: '사용중' })
+  it('기록이 있으면 측정 방식 잠김', async () => {
+    const ex = await exercisesRepo.create({ name: '사용중운동', metric: 'reps' })
     await sessionsRepo.create({
       memberId: 'm1',
       memberNameSnapshot: 'x',
       date: '2026-06-01',
-      routine: [{ exerciseId: ex.id, sets: [] }],
+      routine: [{ exerciseId: ex.id, sets: [{ weight: 0, reps: 10 }] }],
     })
     renderForm(`/exercises/${ex.id}/edit`)
-    await screen.findByDisplayValue('사용중')
-    await userEvent.click(screen.getByRole('button', { name: '삭제' }))
-    const confirm = await screen.findByRole('alertdialog')
-    await userEvent.click(within(confirm).getByRole('button', { name: '삭제' }))
-    // blocked 알림(또 다른 alertdialog)
-    await waitFor(() => {
-      expect(screen.getByText(/사용 중/)).toBeInTheDocument()
-    })
-    expect(await exercisesRepo.findById(ex.id)).toBeDefined()
+    await screen.findByDisplayValue('사용중운동')
+    expect(await screen.findByText('기록이 있어 변경할 수 없습니다')).toBeInTheDocument()
   })
 
   it('없는 id: "운동을 찾을 수 없습니다"', async () => {

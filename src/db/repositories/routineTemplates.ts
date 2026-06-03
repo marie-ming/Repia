@@ -6,6 +6,12 @@ function newId(): string {
   return 'rtt_' + crypto.randomUUID()
 }
 
+// 레거시 레코드: categories 누락 시 빈 배열로 보정
+function normalize(t: RoutineTemplate): RoutineTemplate {
+  if (!Array.isArray(t.categories)) t.categories = []
+  return t
+}
+
 export type RoutineTemplateInput = Partial<
   Omit<RoutineTemplate, 'id' | 'createdAt' | 'updatedAt'>
 > &
@@ -20,12 +26,13 @@ export const routineTemplatesRepo = {
     const results = await db.getAllFromIndex(STORES.ROUTINE_TEMPLATES, index)
     // updatedAt sort should be newest first
     if (sortBy === 'updatedAt') results.reverse()
-    return results
+    return results.map(normalize)
   },
 
   async findById(id: string): Promise<RoutineTemplate | undefined> {
     const db = await getDB()
-    return db.get(STORES.ROUTINE_TEMPLATES, id)
+    const t = await db.get(STORES.ROUTINE_TEMPLATES, id)
+    return t ? normalize(t) : undefined
   },
 
   async create(data: RoutineTemplateInput): Promise<RoutineTemplate> {
@@ -34,6 +41,7 @@ export const routineTemplatesRepo = {
     const template: RoutineTemplate = {
       id: newId(),
       title: data.title,
+      categories: data.categories ?? [],
       exercises: data.exercises ?? [],
       memo: data.memo ?? '',
       createdAt: now,

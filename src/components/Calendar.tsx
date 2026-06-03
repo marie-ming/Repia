@@ -4,18 +4,19 @@ import { ChevronLeftIcon, ChevronRightIcon } from './icons.tsx'
 interface CalendarProps {
   viewMonth: Date // first day of the month being displayed
   selectedDate: string // YYYY-MM-DD
-  markedDates: Set<string> // dates that have sessions
+  markedCounts: Map<string, number> // date -> 표시할 dot 개수 (1+)
   onSelect: (date: string) => void
   onShiftMonth: (delta: number) => void
   onToday: () => void
 }
 
 const MAX_CELLS = 42 // 6 weeks × 7 days
+const MAX_DOTS = 3
 
 export function Calendar({
   viewMonth,
   selectedDate,
-  markedDates,
+  markedCounts,
   onSelect,
   onShiftMonth,
   onToday,
@@ -71,7 +72,17 @@ export function Calendar({
               onClick={() => onSelect(iso)}
             >
               <span className="calendar__date">{d.getDate()}</span>
-              {markedDates.has(iso) && <span className="calendar__dot" />}
+              {(() => {
+                const n = markedCounts.get(iso) ?? 0
+                if (n === 0) return null
+                return (
+                  <span className="calendar__dots">
+                    {Array.from({ length: Math.min(n, MAX_DOTS) }, (_, di) => (
+                      <span key={di} className="calendar__dot" />
+                    ))}
+                  </span>
+                )
+              })()}
             </button>
           )
         })}

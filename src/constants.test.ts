@@ -8,6 +8,8 @@ import {
   SESSION_STATUS_LABELS,
   SESSION_STATUS_OPTIONS,
   gripLabel,
+  formatDuration,
+  formatSet,
 } from './constants.ts'
 
 describe('회원 상태', () => {
@@ -62,13 +64,14 @@ describe('장비', () => {
     }
   })
 
-  it('맨몸/바벨/덤벨/케틀벨/머신/밴드/기타 포함', () => {
+  it('맨몸/바벨/덤벨/케틀벨/머신/케이블/밴드/기타 포함', () => {
     expect(EQUIPMENT_OPTIONS.map((o) => o.value)).toEqual([
       'bodyweight',
       'barbell',
       'dumbbell',
       'kettlebell',
       'machine',
+      'cable',
       'band',
       'etc',
     ])
@@ -90,5 +93,31 @@ describe('gripLabel', () => {
   it('legacy 코드가 아닌 자유 입력은 그대로 반환', () => {
     expect(gripLabel('와이드 그립')).toBe('와이드 그립')
     expect(gripLabel('')).toBe('')
+  })
+})
+
+describe('formatDuration', () => {
+  it('초를 m:ss로', () => {
+    expect(formatDuration(0)).toBe('0:00')
+    expect(formatDuration(45)).toBe('0:45')
+    expect(formatDuration(90)).toBe('1:30')
+    expect(formatDuration(605)).toBe('10:05')
+  })
+})
+
+describe('formatSet (측정 방식별)', () => {
+  it('weight_reps', () => {
+    expect(formatSet('weight_reps', { weight: 100, reps: 5 })).toBe('100kg × 5회')
+  })
+  it('reps', () => {
+    expect(formatSet('reps', { weight: 0, reps: 15 })).toBe('15회')
+  })
+  it('time', () => {
+    expect(formatSet('time', { weight: 0, reps: 0, seconds: 75 })).toBe('1:15')
+  })
+  it('distance_time', () => {
+    expect(formatSet('distance_time', { weight: 0, reps: 0, seconds: 1800, distance: 5 })).toBe(
+      '5km · 30:00',
+    )
   })
 })

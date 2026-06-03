@@ -7,6 +7,12 @@ export function todayISODate(): string {
   return `${y}-${m}-${day}`
 }
 
+// 현재 시각을 "HH:MM" (로컬)로 반환
+export function nowHHMM(): string {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 // "2026-05-24" -> "2026.05.24"
 export function formatDotDate(date: string | null): string {
   if (!date) return ''

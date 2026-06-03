@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { exportBackup, importBackup, resetAllData } from '../db/backup.ts'
+import { seedDemoData } from '../db/seed.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon } from '../components/icons.tsx'
@@ -31,6 +32,20 @@ export function DataSettingsPage() {
     const file = e.target.files?.[0]
     if (file) setPendingFile(file)
     e.target.value = ''
+  }
+
+  async function handleSeed() {
+    try {
+      setBusy(true)
+      await resetAllData()
+      await seedDemoData()
+      showToast('데모 데이터가 채워졌습니다')
+      setTimeout(() => window.location.reload(), 800)
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : '데모 데이터 주입 실패')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function handleReset() {
@@ -121,6 +136,23 @@ export function DataSettingsPage() {
             onChange={handleFileChange}
           />
         </section>
+
+        {__DEMO_ENABLED__ && (
+          <section className="settings-section">
+            <h2 className="settings-section__title">데모 데이터</h2>
+            <p className="settings-section__desc settings-section__desc--warn">
+              현재 데이터를 지우고 검증용 회원·운동·수업·기록을 채웁니다.
+            </p>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={handleSeed}
+              disabled={busy}
+            >
+              데모 데이터 채우기
+            </button>
+          </section>
+        )}
 
         <section className="settings-section">
           <h2 className="settings-section__title">설정 및 데이터 초기화</h2>
