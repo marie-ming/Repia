@@ -5,6 +5,7 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { RoutineLogFormPage } from './RoutineLogFormPage.tsx'
 import { ToastProvider } from '../components/Toast.tsx'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
+import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 
 function renderForm(path: string) {
@@ -72,6 +73,23 @@ describe('RoutineLogFormPage — 신규', () => {
     // 세트 2개 복제됨
     const setRows = document.querySelectorAll('.set-row')
     expect(setRows.length).toBe(2)
+  })
+
+  it('?fromTemplate= : 템플릿 운동·세트 프리필 + 저장 시 templateId 연결', async () => {
+    const ex = await exercisesRepo.create({ name: '스쿼트' })
+    const tpl = await routineTemplatesRepo.create({
+      title: '하체 루틴',
+      exercises: [{ exerciseId: ex.id, sets: [{ weight: 60, reps: 10 }] }],
+    })
+    renderForm(`/logs/new?fromTemplate=${tpl.id}`)
+    expect(await screen.findByDisplayValue('하체 루틴')).toBeInTheDocument()
+    expect(screen.getByText('스쿼트')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(async () => {
+      const all = await routineLogsRepo.findAll()
+      expect(all).toHaveLength(1)
+      expect(all[0].templateId).toBe(tpl.id)
+    })
   })
 })
 

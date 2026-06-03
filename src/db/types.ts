@@ -82,6 +82,7 @@ export interface Session {
 export interface RoutineTemplate {
   id: string
   title: string
+  categories: ExerciseCategory[] // up to 3
   exercises: RoutineExercise[]
   memo: string
   createdAt: string

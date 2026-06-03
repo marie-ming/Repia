@@ -713,6 +713,35 @@ button {
   }
 }
 
+// 루틴 카테고리 배지 (제목 옆)
+.routine-detail__titlerow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+
+  .detail__title {
+    margin-bottom: 0;
+    margin-right: 0.1rem;
+  }
+}
+
+.log-card__titlerow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+// 상세 페이지 하단 고정 푸터 (루틴 기록 시작 등)
+.detail__footer {
+  flex-shrink: 0;
+  padding: 0.75rem 1.25rem calc(0.75rem + var(--safe-bottom));
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
 // 상세 바 더보기(케밥) 버튼
 .detail__menu {
   display: grid;

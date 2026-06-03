@@ -11,6 +11,8 @@ import { ExerciseFormPage } from './pages/ExerciseFormPage.tsx'
 import { SessionFormPage } from './pages/SessionFormPage.tsx'
 import { RoutineLogFormPage } from './pages/RoutineLogFormPage.tsx'
 import { RoutineLogDetailPage } from './pages/RoutineLogDetailPage.tsx'
+import { RoutineTemplateFormPage } from './pages/RoutineTemplateFormPage.tsx'
+import { RoutineTemplateDetailPage } from './pages/RoutineTemplateDetailPage.tsx'
 import { Splash } from './components/Splash.tsx'
 import { ModeContext } from './components/ModeContext.tsx'
 import { tabsForMode } from './navigation.tsx'
@@ -75,6 +77,9 @@ function App() {
           <Route path="/logs/:id" element={<RoutineLogDetailPage />} />
           <Route path="/logs/new" element={<RoutineLogFormPage />} />
           <Route path="/logs/:id/edit" element={<RoutineLogFormPage />} />
+          <Route path="/routines/:id" element={<RoutineTemplateDetailPage />} />
+          <Route path="/routines/new" element={<RoutineTemplateFormPage />} />
+          <Route path="/routines/:id/edit" element={<RoutineTemplateFormPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

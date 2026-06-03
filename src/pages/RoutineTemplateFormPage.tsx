@@ -1,64 +1,51 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import type {
-  RoutineLog,
-  RoutineLogStatus,
+  RoutineTemplate,
   RoutineExercise,
+  RoutineLog,
   SetEntry,
   Exercise,
+  ExerciseCategory,
 } from '../db/types.ts'
+import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { ExercisePicker } from '../components/ExercisePicker.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
-import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
 import { ChevronLeftIcon } from '../components/icons.tsx'
-import { ROUTINE_LOG_STATUS_OPTIONS } from '../constants.ts'
-import { nowHHMM, todayISODate } from '../utils/date.ts'
+import { EXERCISE_CATEGORY_OPTIONS } from '../constants.ts'
+
+const MAX_CATEGORIES = 3
 
 interface FormData {
   title: string
-  date: string
-  time: string
-  status: RoutineLogStatus
+  categories: ExerciseCategory[]
   exercises: RoutineExercise[]
   memo: string
-  templateId: string | null
 }
 
-function emptyForm(date: string): FormData {
-  return { title: '', date, time: nowHHMM(), status: 'planned', exercises: [], memo: '', templateId: null }
+function emptyForm(): FormData {
+  return { title: '', categories: [], exercises: [], memo: '' }
 }
 
-function fromLog(l: RoutineLog): FormData {
-  return {
-    title: l.title,
-    date: l.date,
-    time: l.time,
-    status: l.status,
-    exercises: l.exercises,
-    memo: l.memo,
-    templateId: l.templateId,
-  }
+function fromTemplate(t: RoutineTemplate): FormData {
+  return { title: t.title, categories: t.categories, exercises: t.exercises, memo: t.memo }
 }
 
-export function RoutineLogFormPage() {
+export function RoutineTemplateFormPage() {
   const { id } = useParams<{ id?: string }>()
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const showToast = useToast()
   const isEdit = !!id
-  const defaultDate = searchParams.get('date') ?? todayISODate()
-  const fromId = searchParams.get('from')
-  const fromTemplateId = searchParams.get('fromTemplate')
 
-  const [form, setForm] = useState<FormData>(() => emptyForm(defaultDate))
-  const initRef = useRef<FormData>(emptyForm(defaultDate))
+  const [form, setForm] = useState<FormData>(emptyForm)
+  const initRef = useRef<FormData>(emptyForm())
   const [loaded, setLoaded] = useState(!isEdit)
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [history, setHistory] = useState<RoutineLog[]>([])
-  const [log, setLog] = useState<RoutineLog | null>(null)
+  const [template, setTemplate] = useState<RoutineTemplate | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
 
@@ -70,67 +57,29 @@ export function RoutineLogFormPage() {
     setExercises(exs)
     setHistory(allLogs)
     if (isEdit && id) {
-      const l = await routineLogsRepo.findById(id)
-      if (l) {
-        const initial = fromLog(l)
+      const t = await routineTemplatesRepo.findById(id)
+      if (t) {
+        const initial = fromTemplate(t)
         setForm(initial)
         initRef.current = initial
-        setLog(l)
-      }
-    } else if (fromId) {
-      // 다른 기록을 그대로 복제해 오늘 신규로 (세트 값 포함)
-      const src = await routineLogsRepo.findById(fromId)
-      if (src) {
-        const initial: FormData = {
-          title: src.title,
-          date: defaultDate,
-          time: nowHHMM(),
-          status: 'planned',
-          exercises: src.exercises.map((r) => ({
-            exerciseId: r.exerciseId,
-            sets: r.sets.map((s) => ({ ...s })),
-          })),
-          memo: '',
-          templateId: null,
-        }
-        setForm(initial)
-        initRef.current = initial
-      }
-    } else if (fromTemplateId) {
-      // 루틴 템플릿으로 기록 시작
-      const tpl = await routineTemplatesRepo.findById(fromTemplateId)
-      if (tpl) {
-        const initial: FormData = {
-          title: tpl.title,
-          date: defaultDate,
-          time: nowHHMM(),
-          status: 'planned',
-          exercises: tpl.exercises.map((r) => ({
-            exerciseId: r.exerciseId,
-            sets: r.sets.map((s) => ({ ...s })),
-          })),
-          memo: '',
-          templateId: tpl.id,
-        }
-        setForm(initial)
-        initRef.current = initial
+        setTemplate(t)
       }
     }
     setLoaded(true)
-  }, [id, isEdit, fromId, fromTemplateId, defaultDate])
+  }, [id, isEdit])
 
   useEffect(() => {
     load()
   }, [load])
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
-  const canSave = !!form.date && (!isEdit || isDirty)
+  const canSave = form.title.trim().length > 0 && (!isEdit || isDirty)
 
-  // 운동별 가장 최근 기록의 세트 구성 전체 (현재 편집 중인 기록·취소 제외)
+  // 운동별 가장 최근 기록의 세트 구성 (취소 제외)
   const lastSetsByExercise = useMemo(() => {
     const map = new Map<string, SetEntry[]>()
     const sorted = [...history]
-      .filter((l) => l.id !== id && l.status !== 'cancelled')
+      .filter((l) => l.status !== 'cancelled')
       .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
     for (const l of sorted) {
       for (const ex of l.exercises) {
@@ -140,10 +89,20 @@ export function RoutineLogFormPage() {
       }
     }
     return map
-  }, [history, id])
+  }, [history])
 
   function exerciseName(exId: string): string {
     return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
+  }
+
+  function toggleCategory(value: ExerciseCategory) {
+    setForm((f) => {
+      if (f.categories.includes(value)) {
+        return { ...f, categories: f.categories.filter((c) => c !== value) }
+      }
+      if (f.categories.length >= MAX_CATEGORIES) return f
+      return { ...f, categories: [...f.categories, value] }
+    })
   }
 
   function handlePickerConfirm(ids: string[]) {
@@ -198,19 +157,16 @@ export function RoutineLogFormPage() {
     if (!canSave) return
     const input = {
       title: form.title.trim(),
-      date: form.date,
-      time: form.time,
-      status: form.status,
+      categories: form.categories,
       exercises: form.exercises,
       memo: form.memo,
-      templateId: form.templateId,
     }
     if (isEdit && id) {
-      await routineLogsRepo.update(id, input)
-      showToast('기록이 수정되었습니다')
+      await routineTemplatesRepo.update(id, input)
+      showToast('루틴이 수정되었습니다')
     } else {
-      await routineLogsRepo.create(input)
-      showToast('기록이 추가되었습니다')
+      await routineTemplatesRepo.create(input)
+      showToast('루틴이 추가되었습니다')
     }
     navigate(-1)
   }
@@ -224,17 +180,17 @@ export function RoutineLogFormPage() {
     return <div className="detail"><p className="page__placeholder">불러오는 중...</p></div>
   }
 
-  if (isEdit && !log) {
+  if (isEdit && !template) {
     return (
       <div className="detail">
         <header className="detail__bar">
-          <button type="button" className="detail__back" onClick={() => navigate('/')} aria-label="뒤로">
+          <button type="button" className="detail__back" onClick={() => navigate('/routines')} aria-label="뒤로">
             <ChevronLeftIcon />
           </button>
           <span className="detail__bar-spacer" />
         </header>
         <div className="empty">
-          <p className="empty__title">기록을 찾을 수 없습니다</p>
+          <p className="empty__title">루틴을 찾을 수 없습니다</p>
         </div>
       </div>
     )
@@ -246,61 +202,40 @@ export function RoutineLogFormPage() {
         <button type="button" className="detail__back" onClick={handleBack} aria-label="뒤로">
           <ChevronLeftIcon />
         </button>
-        <h1 className="detail__bar-title">{isEdit ? '기록 수정' : '기록 추가'}</h1>
+        <h1 className="detail__bar-title">{isEdit ? '루틴 수정' : '루틴 추가'}</h1>
         <span className="detail__bar-spacer" />
       </header>
 
       <div className="detail__body">
         <form className="member-form" onSubmit={handleSubmit}>
           <label className="field">
-            <span className="field__label">제목</span>
+            <span className="field__label">제목 *</span>
             <input
               className="field__input"
               type="text"
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              placeholder="제목 입력 (예: 하체 데이)"
+              placeholder="제목 입력 (예: 하체 루틴)"
             />
           </label>
 
-          <div className="field-row">
-            <label className="field">
-              <span className="field__label">날짜</span>
-              <input
-                className="field__input"
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              />
-            </label>
-            <label className="field">
-              <span className="field__label">시간</span>
-              <span className="time-input">
-                <input
-                  className="field__input"
-                  type="time"
-                  value={form.time}
-                  data-empty={form.time ? undefined : 'true'}
-                  onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
-                />
-                {!form.time && <span className="time-input__placeholder">시간 선택</span>}
-              </span>
-            </label>
-          </div>
-
           <div className="field">
-            <span className="field__label">상태</span>
-            <div className="segmented">
-              {ROUTINE_LOG_STATUS_OPTIONS.filter((o) => o.value !== 'cancelled').map((opt) => (
-                <button
-                  type="button"
-                  key={opt.value}
-                  className={form.status === opt.value ? 'segmented__item segmented__item--active' : 'segmented__item'}
-                  onClick={() => setForm((f) => ({ ...f, status: opt.value }))}
-                >
-                  {opt.label}
-                </button>
-              ))}
+            <span className="field__label">카테고리 (최대 {MAX_CATEGORIES}개)</span>
+            <div className="chips chips--wrap">
+              {EXERCISE_CATEGORY_OPTIONS.map((opt) => {
+                const selected = form.categories.includes(opt.value)
+                const disabled = !selected && form.categories.length >= MAX_CATEGORIES
+                return (
+                  <button
+                    type="button"
+                    key={opt.value}
+                    className={selected ? 'chip chip--active' : disabled ? 'chip chip--disabled' : 'chip'}
+                    onClick={() => toggleCategory(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -359,7 +294,7 @@ export function RoutineLogFormPage() {
               className="field__input field__textarea"
               value={form.memo}
               onChange={(e) => setForm((f) => ({ ...f, memo: e.target.value }))}
-              placeholder="컨디션, 기록 등"
+              placeholder="루틴 설명, 주의사항 등"
               rows={2}
             />
           </label>
