@@ -92,10 +92,7 @@ export function SessionFormPage() {
 
   function handlePickerConfirm(ids: string[]) {
     setForm((f) => {
-      const existing = new Set(f.routine.map((r) => r.exerciseId))
-      const toAdd = ids
-        .filter((x) => !existing.has(x))
-        .map((x) => ({ exerciseId: x, sets: [{ weight: 0, reps: 0 }] }))
+      const toAdd = ids.map((x) => ({ exerciseId: x, sets: [{ weight: 0, reps: 0 }] }))
       return { ...f, routine: [...f.routine, ...toAdd] }
     })
     setPickerOpen(false)
@@ -107,9 +104,12 @@ export function SessionFormPage() {
   function addSet(ri: number) {
     setForm((f) => ({
       ...f,
-      routine: f.routine.map((r, i) =>
-        i === ri ? { ...r, sets: [...r.sets, { weight: 0, reps: 0 }] } : r,
-      ),
+      routine: f.routine.map((r, i) => {
+        if (i !== ri) return r
+        const last = r.sets[r.sets.length - 1]
+        const next = last ? { ...last } : { weight: 0, reps: 0 }
+        return { ...r, sets: [...r.sets, next] }
+      }),
     }))
   }
   function removeSet(ri: number, si: number) {
@@ -260,7 +260,7 @@ export function SessionFormPage() {
             <span className="field__label">운동</span>
             <div className="routine-editor">
               {form.routine.map((r, ri) => (
-                <div className="routine-ex" key={r.exerciseId}>
+                <div className="routine-ex" key={ri}>
                   <div className="routine-ex__head">
                     <span className="routine-ex__name">{exerciseName(r.exerciseId)}</span>
                     <button type="button" className="routine-ex__remove" onClick={() => removeExercise(ri)} aria-label="운동 제거">✕</button>
@@ -330,7 +330,7 @@ export function SessionFormPage() {
       <ExercisePicker
         open={pickerOpen}
         exercises={exercises}
-        excludeIds={form.routine.map((r) => r.exerciseId)}
+        excludeIds={[]}
         onClose={() => setPickerOpen(false)}
         onConfirm={handlePickerConfirm}
       />
