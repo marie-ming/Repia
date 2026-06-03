@@ -3,19 +3,23 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { ExerciseDetailPage } from './ExerciseDetailPage.tsx'
+import { ModeContext } from '../components/ModeContext.tsx'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
+import type { Mode } from '../db/types.ts'
 
-function renderPage(id: string) {
+function renderPage(id: string, mode: Mode = 'trainer') {
   function PathProbe() {
     const loc = useLocation()
     return <div data-testid="loc">{loc.pathname}</div>
   }
   return render(
     <MemoryRouter initialEntries={[`/exercises/${id}`]}>
-      <Routes>
-        <Route path="/exercises/:id" element={<ExerciseDetailPage />} />
-        <Route path="*" element={<PathProbe />} />
-      </Routes>
+      <ModeContext.Provider value={{ mode, setMode: async () => {} }}>
+        <Routes>
+          <Route path="/exercises/:id" element={<ExerciseDetailPage />} />
+          <Route path="*" element={<PathProbe />} />
+        </Routes>
+      </ModeContext.Provider>
     </MemoryRouter>,
   )
 }
@@ -56,6 +60,27 @@ describe('ExerciseDetailPage', () => {
     renderPage(ex.id)
     await userEvent.click(await screen.findByRole('button', { name: '수정' }))
     expect(screen.getByTestId('loc')).toHaveTextContent(`/exercises/${ex.id}/edit`)
+  })
+
+  it('개인 모드: 해당 운동의 최근 기록 표시', async () => {
+    const { sessionsRepo } = await import('../db/repositories/sessions.ts')
+    const { routineLogsRepo } = await import('../db/repositories/routineLogs.ts')
+    const ex = await exercisesRepo.create({ name: '데드리프트' })
+    await routineLogsRepo.create({
+      title: '하체 데이',
+      date: '2026-06-01',
+      status: 'completed',
+      exercises: [{ exerciseId: ex.id, sets: [{ weight: 100, reps: 5 }] }],
+    })
+    // 다른 운동만 있는 기록은 제외되어야 함
+    await sessionsRepo.create({
+      memberId: 'm1',
+      memberNameSnapshot: 'x',
+      date: '2026-06-02',
+    })
+    renderPage(ex.id, 'personal')
+    expect(await screen.findByText('최근 기록')).toBeInTheDocument()
+    expect(screen.getByText('100kg×5')).toBeInTheDocument()
   })
 
   it('없는 id: 안내 표시', async () => {

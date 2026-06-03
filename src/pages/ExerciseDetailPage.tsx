@@ -1,14 +1,31 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
-import type { Exercise } from '../db/types.ts'
-import { ChevronLeftIcon } from '../components/icons.tsx'
+import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
+import type { Exercise, SetEntry } from '../db/types.ts'
+import { useMode } from '../components/ModeContext.tsx'
+import { useToast } from '../components/Toast.tsx'
+import { ChevronLeftIcon, ChevronRightIcon } from '../components/icons.tsx'
 import { EXERCISE_CATEGORY_LABELS, EQUIPMENT_LABELS, gripLabel } from '../constants.ts'
+import { formatShortDateWithWeekday } from '../utils/date.ts'
+
+interface RecentItem {
+  id: string
+  date: string
+  sets: SetEntry[]
+  to: string
+}
+
+const RECENT_LIMIT = 5
 
 export function ExerciseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { mode } = useMode()
+  const showToast = useToast()
   const [exercise, setExercise] = useState<Exercise | null>(null)
+  const [recent, setRecent] = useState<RecentItem[]>([])
+  const [recentTotal, setRecentTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [activePhoto, setActivePhoto] = useState(0)
 
@@ -16,8 +33,26 @@ export function ExerciseDetailPage() {
     if (!id) return
     const ex = await exercisesRepo.findById(id)
     setExercise(ex ?? null)
+
+    // 최근 기록은 개인 모드에서만 (운동 진척 추적 용도)
+    if (mode === 'personal') {
+      const logs = await routineLogsRepo.findAll()
+      const matched = logs
+        .filter((l) => l.status === 'completed' && l.exercises.some((r) => r.exerciseId === id))
+        .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
+      setRecentTotal(matched.length)
+      setRecent(
+        matched.slice(0, RECENT_LIMIT).map((l) => ({
+          id: l.id,
+          date: l.date,
+          sets: l.exercises.find((r) => r.exerciseId === id)?.sets ?? [],
+          to: `/logs/${l.id}`,
+        })),
+      )
+    }
+
     setLoading(false)
-  }, [id])
+  }, [id, mode])
 
   useEffect(() => {
     load()
@@ -125,6 +160,38 @@ export function ExerciseDetailPage() {
         </dl>
 
         {exercise.description && <p className="detail__desc">{exercise.description}</p>}
+
+        {recent.length > 0 && (
+          <>
+            <div className="exrec-head">
+              <h2 className="detail__section">최근 기록</h2>
+              {recentTotal > RECENT_LIMIT && (
+                <button
+                  type="button"
+                  className="exrec-more"
+                  onClick={() => showToast('전체 기록 보기는 곧 추가됩니다')}
+                >
+                  더보기
+                  <ChevronRightIcon className="exrec-more__icon" />
+                </button>
+              )}
+            </div>
+            <ul className="exrec-list">
+              {recent.map((r) => (
+                <li key={r.id}>
+                  <button type="button" className="exrec-item" onClick={() => navigate(r.to)}>
+                    <span className="exrec-item__date">{formatShortDateWithWeekday(r.date)}</span>
+                    {r.sets.length > 0 && (
+                      <span className="exrec-item__sets">
+                        {r.sets.map((s) => `${s.weight}kg×${s.reps}`).join(' · ')}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
     </div>
   )

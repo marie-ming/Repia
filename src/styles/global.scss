@@ -653,6 +653,78 @@ button {
   color: var(--color-text-secondary);
 }
 
+// 운동 조회 - 최근 기록 (가벼운 리스트 행)
+.exrec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+
+  .detail__section {
+    margin-bottom: 0.25rem;
+  }
+}
+
+.exrec-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  background: none;
+
+  &__icon {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+.exrec-list {
+  list-style: none;
+
+  li:last-child .exrec-item {
+    border-bottom: none;
+  }
+}
+
+.exrec-item {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 0.85rem;
+  padding: 0.7rem 0.15rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+
+  &__date {
+    flex-shrink: 0;
+    min-width: 6.2em;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  &__member {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  &__sets {
+    font-size: 0.88rem;
+    color: var(--color-text);
+  }
+}
+
 // 상세 바 더보기(케밥) 버튼
 .detail__menu {
   display: grid;
