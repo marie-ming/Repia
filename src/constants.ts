@@ -61,6 +61,7 @@ export const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
   { value: 'dumbbell', label: '덤벨' },
   { value: 'kettlebell', label: '케틀벨' },
   { value: 'machine', label: '머신' },
+  { value: 'cable', label: '케이블' },
   { value: 'band', label: '밴드' },
   { value: 'etc', label: '기타' },
 ]

@@ -38,6 +38,7 @@ export type Equipment =
   | 'dumbbell'
   | 'kettlebell'
   | 'machine'
+  | 'cable'
   | 'band'
   | 'etc'
 

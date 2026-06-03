@@ -62,13 +62,14 @@ describe('장비', () => {
     }
   })
 
-  it('맨몸/바벨/덤벨/케틀벨/머신/밴드/기타 포함', () => {
+  it('맨몸/바벨/덤벨/케틀벨/머신/케이블/밴드/기타 포함', () => {
     expect(EQUIPMENT_OPTIONS.map((o) => o.value)).toEqual([
       'bodyweight',
       'barbell',
       'dumbbell',
       'kettlebell',
       'machine',
+      'cable',
       'band',
       'etc',
     ])
