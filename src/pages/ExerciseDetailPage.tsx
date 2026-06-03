@@ -5,9 +5,19 @@ import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import type { Exercise, SetEntry } from '../db/types.ts'
 import { useMode } from '../components/ModeContext.tsx'
 import { useToast } from '../components/Toast.tsx'
-import { ChevronLeftIcon, ChevronRightIcon } from '../components/icons.tsx'
+import { BottomSheet } from '../components/BottomSheet.tsx'
+import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MoreIcon,
+  PencilIcon,
+  ShareIcon,
+  TrashIcon,
+} from '../components/icons.tsx'
 import { EXERCISE_CATEGORY_LABELS, EQUIPMENT_LABELS, gripLabel, formatSet } from '../constants.ts'
 import { formatShortDateWithWeekday } from '../utils/date.ts'
+import { generateExerciseShareImage } from '../utils/shareImage.ts'
 
 interface RecentItem {
   id: string
@@ -28,6 +38,9 @@ export function ExerciseDetailPage() {
   const [recentTotal, setRecentTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [activePhoto, setActivePhoto] = useState(0)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmDel, setConfirmDel] = useState(false)
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -64,6 +77,41 @@ export function ExerciseDetailPage() {
     if (idx !== activePhoto) setActivePhoto(idx)
   }
 
+  async function handleDelete() {
+    if (!exercise) return
+    try {
+      await exercisesRepo.delete(exercise.id)
+      setConfirmDel(false)
+      showToast('운동이 삭제되었습니다')
+      navigate('/exercises', { replace: true })
+    } catch (err) {
+      setConfirmDel(false)
+      setBlockedMessage(err instanceof Error ? err.message : '삭제할 수 없습니다.')
+    }
+  }
+
+  async function handleShare() {
+    if (!exercise) return
+    try {
+      const blob = await generateExerciseShareImage(exercise)
+      const file = new File([blob], `${exercise.name}.png`, { type: 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: exercise.name })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${exercise.name}.png`
+        a.click()
+        URL.revokeObjectURL(url)
+        showToast('이미지를 저장했습니다')
+      }
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return // 사용자가 공유 취소
+      showToast('공유할 수 없습니다')
+    }
+  }
+
   if (loading) {
     return <div className="page"><p className="page__placeholder">불러오는 중...</p></div>
   }
@@ -90,8 +138,8 @@ export function ExerciseDetailPage() {
         <button type="button" className="detail__back" onClick={() => navigate(-1)} aria-label="뒤로">
           <ChevronLeftIcon />
         </button>
-        <button type="button" className="detail__edit" onClick={() => navigate(`/exercises/${exercise.id}/edit`)}>
-          수정
+        <button type="button" className="detail__menu" onClick={() => setMenuOpen(true)} aria-label="더보기">
+          <MoreIcon />
         </button>
       </header>
 
@@ -193,6 +241,69 @@ export function ExerciseDetailPage() {
           </>
         )}
       </div>
+
+      <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} title={exercise.name}>
+        <ul className="action-menu">
+          <li>
+            <button
+              type="button"
+              className="action-menu__item"
+              onClick={() => {
+                setMenuOpen(false)
+                navigate(`/exercises/${exercise.id}/edit`)
+              }}
+            >
+              <PencilIcon className="action-menu__icon" />
+              수정
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              className="action-menu__item"
+              onClick={() => {
+                setMenuOpen(false)
+                handleShare()
+              }}
+            >
+              <ShareIcon className="action-menu__icon" />
+              이미지로 공유
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              className="action-menu__item action-menu__item--danger"
+              onClick={() => {
+                setMenuOpen(false)
+                setConfirmDel(true)
+              }}
+            >
+              <TrashIcon className="action-menu__icon" />
+              삭제
+            </button>
+          </li>
+        </ul>
+      </BottomSheet>
+
+      <ConfirmDialog
+        open={confirmDel}
+        title="운동을 삭제할까요?"
+        confirmLabel="삭제"
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDel(false)}
+      />
+
+      <ConfirmDialog
+        open={!!blockedMessage}
+        title="삭제할 수 없습니다"
+        message={blockedMessage ?? ''}
+        confirmLabel="확인"
+        hideCancel
+        onConfirm={() => setBlockedMessage(null)}
+        onCancel={() => setBlockedMessage(null)}
+      />
     </div>
   )
 }

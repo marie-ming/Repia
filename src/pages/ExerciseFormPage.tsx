@@ -60,8 +60,6 @@ export function ExerciseFormPage() {
   const initRef = useRef<FormData>(emptyForm())
   const [loaded, setLoaded] = useState(!isEdit)
   const [confirmClose, setConfirmClose] = useState(false)
-  const [confirmDel, setConfirmDel] = useState(false)
-  const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [metricLocked, setMetricLocked] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -141,18 +139,6 @@ export function ExerciseFormPage() {
   function handleBack() {
     if (isDirty) setConfirmClose(true)
     else navigate(-1)
-  }
-
-  async function doDelete() {
-    if (!id) return
-    try {
-      await exercisesRepo.delete(id)
-      showToast('운동이 삭제되었습니다')
-      navigate('/exercises', { replace: true })
-    } catch (err) {
-      setConfirmDel(false)
-      setBlockedMessage(err instanceof Error ? err.message : '삭제할 수 없습니다.')
-    }
   }
 
   if (isEdit && !loaded) {
@@ -293,11 +279,6 @@ export function ExerciseFormPage() {
 
           <div className="member-form__actions">
             <button type="submit" className="btn btn--primary" disabled={!canSave}>저장</button>
-            {isEdit && (
-              <button type="button" className="btn btn--danger-ghost" onClick={() => setConfirmDel(true)}>
-                삭제
-              </button>
-            )}
           </div>
         </form>
       </div>
@@ -311,25 +292,6 @@ export function ExerciseFormPage() {
         danger
         onConfirm={() => { setConfirmClose(false); navigate(-1) }}
         onCancel={() => setConfirmClose(false)}
-      />
-
-      <ConfirmDialog
-        open={confirmDel}
-        title={`${exercise?.name ?? ''} 운동을 삭제할까요?`}
-        confirmLabel="삭제"
-        danger
-        onConfirm={doDelete}
-        onCancel={() => setConfirmDel(false)}
-      />
-
-      <ConfirmDialog
-        open={!!blockedMessage}
-        title="삭제할 수 없습니다"
-        message={blockedMessage ?? ''}
-        confirmLabel="확인"
-        hideCancel
-        onConfirm={() => setBlockedMessage(null)}
-        onCancel={() => setBlockedMessage(null)}
       />
     </div>
   )
