@@ -80,7 +80,7 @@ describe('ExerciseDetailPage', () => {
     })
     renderPage(ex.id, 'personal')
     expect(await screen.findByText('최근 기록')).toBeInTheDocument()
-    expect(screen.getByText('100kg×5')).toBeInTheDocument()
+    expect(screen.getByText('100kg × 5회')).toBeInTheDocument()
   })
 
   it('없는 id: 안내 표시', async () => {

@@ -6,7 +6,7 @@ import type { Exercise, SetEntry } from '../db/types.ts'
 import { useMode } from '../components/ModeContext.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon, ChevronRightIcon } from '../components/icons.tsx'
-import { EXERCISE_CATEGORY_LABELS, EQUIPMENT_LABELS, gripLabel } from '../constants.ts'
+import { EXERCISE_CATEGORY_LABELS, EQUIPMENT_LABELS, gripLabel, formatSet } from '../constants.ts'
 import { formatShortDateWithWeekday } from '../utils/date.ts'
 
 interface RecentItem {
@@ -183,7 +183,7 @@ export function ExerciseDetailPage() {
                     <span className="exrec-item__date">{formatShortDateWithWeekday(r.date)}</span>
                     {r.sets.length > 0 && (
                       <span className="exrec-item__sets">
-                        {r.sets.map((s) => `${s.weight}kg×${s.reps}`).join(' · ')}
+                        {r.sets.map((s) => formatSet(exercise.metric, s)).join(', ')}
                       </span>
                     )}
                   </button>

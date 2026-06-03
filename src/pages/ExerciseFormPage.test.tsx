@@ -135,6 +135,27 @@ describe('ExerciseFormPage — 수정', () => {
     expect(await exercisesRepo.findById(ex.id)).toBeDefined()
   })
 
+  it('기록 없으면 측정 방식 Select 노출', async () => {
+    const ex = await exercisesRepo.create({ name: '운동', metric: 'reps' })
+    renderForm(`/exercises/${ex.id}/edit`)
+    await screen.findByDisplayValue('운동')
+    expect(screen.getByText('측정 방식')).toBeInTheDocument()
+    expect(screen.queryByText('기록이 있어 변경할 수 없습니다')).not.toBeInTheDocument()
+  })
+
+  it('기록이 있으면 측정 방식 잠김', async () => {
+    const ex = await exercisesRepo.create({ name: '사용중운동', metric: 'reps' })
+    await sessionsRepo.create({
+      memberId: 'm1',
+      memberNameSnapshot: 'x',
+      date: '2026-06-01',
+      routine: [{ exerciseId: ex.id, sets: [{ weight: 0, reps: 10 }] }],
+    })
+    renderForm(`/exercises/${ex.id}/edit`)
+    await screen.findByDisplayValue('사용중운동')
+    expect(await screen.findByText('기록이 있어 변경할 수 없습니다')).toBeInTheDocument()
+  })
+
   it('없는 id: "운동을 찾을 수 없습니다"', async () => {
     renderForm('/exercises/ex_none/edit')
     expect(await screen.findByText('운동을 찾을 수 없습니다')).toBeInTheDocument()

@@ -16,7 +16,7 @@ import {
   PencilIcon,
   TrashIcon,
 } from '../components/icons.tsx'
-import { ROUTINE_LOG_STATUS_LABELS } from '../constants.ts'
+import { ROUTINE_LOG_STATUS_LABELS, formatSet } from '../constants.ts'
 import { formatDotDate } from '../utils/date.ts'
 
 export function RoutineLogDetailPage() {
@@ -43,6 +43,10 @@ export function RoutineLogDetailPage() {
 
   function exerciseName(exId: string): string {
     return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
+  }
+
+  function metricFor(exId: string) {
+    return exercises.find((e) => e.id === exId)?.metric ?? 'weight_reps'
   }
 
   async function handleMakeTemplate() {
@@ -141,7 +145,7 @@ export function RoutineLogDetailPage() {
                     <li key={si} className="routine-readonly__set">
                       <span className="routine-readonly__set-no">{si + 1}</span>
                       <span className="routine-readonly__set-val">
-                        {s.weight} <em>kg</em> × {s.reps} <em>회</em>
+                        {formatSet(metricFor(r.exerciseId), s)}
                       </span>
                     </li>
                   ))}

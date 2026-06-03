@@ -42,12 +42,16 @@ export type Equipment =
   | 'band'
   | 'etc'
 
+// 세트 측정 방식
+export type ExerciseMetric = 'weight_reps' | 'reps' | 'time' | 'distance_time'
+
 export interface Exercise {
   id: string
   name: string
   categories: ExerciseCategory[] // up to 3
   equipment: Equipment | null
   grip: string // free text (e.g. 오버핸드)
+  metric: ExerciseMetric // 세트 입력/표시 방식
   photos: string[] // Base64 data URLs; photos[0] is the representative photo
   description: string
   createdAt: string
@@ -55,8 +59,10 @@ export interface Exercise {
 }
 
 export interface SetEntry {
-  weight: number
-  reps: number
+  weight: number // kg (weight_reps)
+  reps: number // 횟수 (weight_reps, reps)
+  seconds?: number // 시간 (time, distance_time)
+  distance?: number // km (distance_time)
 }
 
 export interface RoutineExercise {

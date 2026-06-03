@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Exercise, ExerciseCategory, Equipment } from '../db/types.ts'
+import type { Exercise, ExerciseCategory, Equipment, ExerciseMetric } from '../db/types.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { Select } from '../components/Select.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon } from '../components/icons.tsx'
-import { EXERCISE_CATEGORY_OPTIONS, EQUIPMENT_OPTIONS } from '../constants.ts'
+import {
+  EXERCISE_CATEGORY_OPTIONS,
+  EQUIPMENT_OPTIONS,
+  EXERCISE_METRIC_OPTIONS,
+  EXERCISE_METRIC_LABELS,
+} from '../constants.ts'
 import { fileToResizedDataURL } from '../utils/image.ts'
 
 const MAX_CATEGORIES = 3
@@ -17,6 +22,7 @@ interface FormData {
   categories: ExerciseCategory[]
   equipment: Equipment | null
   grip: string
+  metric: ExerciseMetric
   description: string
 }
 
@@ -27,6 +33,7 @@ function emptyForm(): FormData {
     categories: [],
     equipment: null,
     grip: '',
+    metric: 'weight_reps',
     description: '',
   }
 }
@@ -38,6 +45,7 @@ function fromExercise(ex: Exercise): FormData {
     categories: ex.categories,
     equipment: ex.equipment,
     grip: ex.grip,
+    metric: ex.metric,
     description: ex.description,
   }
 }
@@ -55,6 +63,7 @@ export function ExerciseFormPage() {
   const [confirmDel, setConfirmDel] = useState(false)
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
   const [exercise, setExercise] = useState<Exercise | null>(null)
+  const [metricLocked, setMetricLocked] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -65,6 +74,7 @@ export function ExerciseFormPage() {
       setForm(initial)
       initRef.current = initial
       setExercise(ex)
+      setMetricLocked(await exercisesRepo.isInUse(id))
     }
     setLoaded(true)
   }, [id])
@@ -241,6 +251,22 @@ export function ExerciseFormPage() {
               onChange={(v) => setForm((f) => ({ ...f, equipment: v }))}
               placeholder="장비 선택"
             />
+          </div>
+
+          <div className="field">
+            <span className="field__label">측정 방식</span>
+            {metricLocked ? (
+              <p className="field__locked">
+                {EXERCISE_METRIC_LABELS[form.metric]}
+                <span className="field__locked-hint">기록이 있어 변경할 수 없습니다</span>
+              </p>
+            ) : (
+              <Select
+                value={form.metric}
+                options={EXERCISE_METRIC_OPTIONS}
+                onChange={(v) => setForm((f) => ({ ...f, metric: v }))}
+              />
+            )}
           </div>
 
           <label className="field">

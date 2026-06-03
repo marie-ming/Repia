@@ -4,6 +4,8 @@ import type {
   Equipment,
   SessionStatus,
   RoutineLogStatus,
+  ExerciseMetric,
+  SetEntry,
 } from './db/types.ts'
 
 export const MEMBER_STATUS_OPTIONS: { value: MemberStatus; label: string }[] = [
@@ -69,6 +71,38 @@ export const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
 export const EQUIPMENT_LABELS = Object.fromEntries(
   EQUIPMENT_OPTIONS.map((o) => [o.value, o.label]),
 ) as Record<Equipment, string>
+
+export const EXERCISE_METRIC_OPTIONS: { value: ExerciseMetric; label: string }[] = [
+  { value: 'weight_reps', label: '무게 × 횟수' },
+  { value: 'reps', label: '횟수' },
+  { value: 'time', label: '시간' },
+  { value: 'distance_time', label: '거리 + 시간' },
+]
+
+export const EXERCISE_METRIC_LABELS = Object.fromEntries(
+  EXERCISE_METRIC_OPTIONS.map((o) => [o.value, o.label]),
+) as Record<ExerciseMetric, string>
+
+// 초 → "m:ss"
+export function formatDuration(sec: number): string {
+  const m = Math.floor(sec / 60)
+  const s = sec % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+// 세트 한 줄 표시 (측정 방식별)
+export function formatSet(metric: ExerciseMetric, s: SetEntry): string {
+  switch (metric) {
+    case 'reps':
+      return `${s.reps}회`
+    case 'time':
+      return formatDuration(s.seconds ?? 0)
+    case 'distance_time':
+      return `${s.distance ?? 0}km · ${formatDuration(s.seconds ?? 0)}`
+    default:
+      return `${s.weight}kg × ${s.reps}회`
+  }
+}
 
 // Legacy grip codes → Korean labels (grip is now free text).
 const GRIP_LEGACY_LABELS: Record<string, string> = {

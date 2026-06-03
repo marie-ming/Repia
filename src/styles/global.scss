@@ -1334,6 +1334,19 @@ button {
     font-size: 0.85rem;
     color: var(--color-text-secondary);
   }
+
+  &__locked {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.6rem 0.1rem;
+    color: var(--color-text);
+  }
+
+  &__locked-hint {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+  }
 }
 
 // Two fields side by side (date + time)

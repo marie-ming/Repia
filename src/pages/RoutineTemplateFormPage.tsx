@@ -7,11 +7,13 @@ import type {
   SetEntry,
   Exercise,
   ExerciseCategory,
+  ExerciseMetric,
 } from '../db/types.ts'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { ExercisePicker } from '../components/ExercisePicker.tsx'
+import { SetRow } from '../components/SetRow.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon } from '../components/icons.tsx'
@@ -141,15 +143,19 @@ export function RoutineTemplateFormPage() {
       ),
     }))
   }
-  function updateSet(ri: number, si: number, field: 'weight' | 'reps', value: number) {
+  function updateSet(ri: number, si: number, patch: Partial<SetEntry>) {
     setForm((f) => ({
       ...f,
       exercises: f.exercises.map((r, i) =>
         i === ri
-          ? { ...r, sets: r.sets.map((s, j) => (j === si ? { ...s, [field]: value } : s)) }
+          ? { ...r, sets: r.sets.map((s, j) => (j === si ? { ...s, ...patch } : s)) }
           : r,
       ),
     }))
+  }
+
+  function metricFor(exId: string): ExerciseMetric {
+    return exercises.find((e) => e.id === exId)?.metric ?? 'weight_reps'
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -249,28 +255,14 @@ export function RoutineTemplateFormPage() {
                     <button type="button" className="routine-ex__remove" onClick={() => removeExercise(ri)} aria-label="운동 제거">✕</button>
                   </div>
                   {r.sets.map((set, si) => (
-                    <div className="set-row" key={si}>
-                      <span className="set-row__no">{si + 1}</span>
-                      <input
-                        className="set-row__input"
-                        type="number"
-                        inputMode="decimal"
-                        value={set.weight || ''}
-                        onChange={(e) => updateSet(ri, si, 'weight', Number(e.target.value))}
-                        placeholder="0"
-                      />
-                      <span className="set-row__unit">kg</span>
-                      <input
-                        className="set-row__input"
-                        type="number"
-                        inputMode="numeric"
-                        value={set.reps || ''}
-                        onChange={(e) => updateSet(ri, si, 'reps', Number(e.target.value))}
-                        placeholder="0"
-                      />
-                      <span className="set-row__unit">회</span>
-                      <button type="button" className="set-row__remove" onClick={() => removeSet(ri, si)} aria-label="세트 삭제">✕</button>
-                    </div>
+                    <SetRow
+                      key={si}
+                      index={si}
+                      metric={metricFor(r.exerciseId)}
+                      set={set}
+                      onChange={(patch) => updateSet(ri, si, patch)}
+                      onRemove={() => removeSet(ri, si)}
+                    />
                   ))}
                   <button type="button" className="routine-ex__add-set" onClick={() => addSet(ri)}>
                     + 세트 추가

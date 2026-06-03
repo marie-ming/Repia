@@ -14,7 +14,7 @@ import {
   PencilIcon,
   TrashIcon,
 } from '../components/icons.tsx'
-import { EXERCISE_CATEGORY_LABELS } from '../constants.ts'
+import { EXERCISE_CATEGORY_LABELS, formatSet } from '../constants.ts'
 
 export function RoutineTemplateDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -43,6 +43,10 @@ export function RoutineTemplateDetailPage() {
 
   function exerciseName(exId: string): string {
     return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
+  }
+
+  function metricFor(exId: string) {
+    return exercises.find((e) => e.id === exId)?.metric ?? 'weight_reps'
   }
 
   async function handleDelete() {
@@ -119,7 +123,7 @@ export function RoutineTemplateDetailPage() {
                     <li key={si} className="routine-readonly__set">
                       <span className="routine-readonly__set-no">{si + 1}</span>
                       <span className="routine-readonly__set-val">
-                        {s.weight} <em>kg</em> × {s.reps} <em>회</em>
+                        {formatSet(metricFor(r.exerciseId), s)}
                       </span>
                     </li>
                   ))}
