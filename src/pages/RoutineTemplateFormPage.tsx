@@ -110,14 +110,18 @@ export function RoutineTemplateFormPage() {
       exercises: form.exercises,
       memo: form.memo,
     }
-    if (isEdit && id) {
-      await routineTemplatesRepo.update(id, input)
-      showToast('루틴이 수정되었습니다')
-    } else {
-      await routineTemplatesRepo.create(input)
-      showToast('루틴이 추가되었습니다')
+    try {
+      if (isEdit && id) {
+        await routineTemplatesRepo.update(id, input)
+        showToast('루틴이 수정되었습니다')
+      } else {
+        await routineTemplatesRepo.create(input)
+        showToast('루틴이 추가되었습니다')
+      }
+      navigate(-1)
+    } catch (err) {
+      showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
     }
-    navigate(-1)
   }
 
   function handleBack() {

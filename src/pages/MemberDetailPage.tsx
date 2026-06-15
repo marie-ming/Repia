@@ -60,10 +60,14 @@ export function MemberDetailPage() {
 
   async function handleSave(data: MemberFormData) {
     if (!member) return
-    await membersRepo.update(member.id, data)
-    setEditOpen(false)
-    showToast('회원 정보가 수정되었습니다')
-    await load()
+    try {
+      await membersRepo.update(member.id, data)
+      setEditOpen(false)
+      showToast('회원 정보가 수정되었습니다')
+      await load()
+    } catch (err) {
+      showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
+    }
   }
 
   async function confirmDelete() {
