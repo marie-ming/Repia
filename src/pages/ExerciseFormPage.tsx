@@ -125,14 +125,18 @@ export function ExerciseFormPage() {
     e.preventDefault()
     if (!canSave) return
     const data = { ...form, name: form.name.trim() }
-    if (isEdit && id) {
-      await exercisesRepo.update(id, data)
-      showToast('운동이 수정되었습니다')
-      navigate(-1)
-    } else {
-      await exercisesRepo.create(data)
-      showToast('운동이 추가되었습니다')
-      navigate('/exercises', { replace: true })
+    try {
+      if (isEdit && id) {
+        await exercisesRepo.update(id, data)
+        showToast('운동이 수정되었습니다')
+        navigate(-1)
+      } else {
+        await exercisesRepo.create(data)
+        showToast('운동이 추가되었습니다')
+        navigate('/exercises', { replace: true })
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
     }
   }
 

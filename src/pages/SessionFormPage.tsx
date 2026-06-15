@@ -99,14 +99,18 @@ export function SessionFormPage() {
       routine: form.routine,
       memo: form.memo,
     }
-    if (isEdit && id) {
-      await sessionsRepo.update(id, input)
-      showToast('수업이 수정되었습니다')
-    } else {
-      await sessionsRepo.create(input)
-      showToast('수업이 추가되었습니다')
+    try {
+      if (isEdit && id) {
+        await sessionsRepo.update(id, input)
+        showToast('수업이 수정되었습니다')
+      } else {
+        await sessionsRepo.create(input)
+        showToast('수업이 추가되었습니다')
+      }
+      navigate(-1)
+    } catch (err) {
+      showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
     }
-    navigate(-1)
   }
 
   function handleBack() {

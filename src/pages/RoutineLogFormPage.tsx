@@ -153,14 +153,18 @@ export function RoutineLogFormPage() {
       memo: form.memo,
       templateId: form.templateId,
     }
-    if (isEdit && id) {
-      await routineLogsRepo.update(id, input)
-      showToast('기록이 수정되었습니다')
-    } else {
-      await routineLogsRepo.create(input)
-      showToast('기록이 추가되었습니다')
+    try {
+      if (isEdit && id) {
+        await routineLogsRepo.update(id, input)
+        showToast('기록이 수정되었습니다')
+      } else {
+        await routineLogsRepo.create(input)
+        showToast('기록이 추가되었습니다')
+      }
+      navigate(-1)
+    } catch (err) {
+      showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
     }
-    navigate(-1)
   }
 
   function handleBack() {
