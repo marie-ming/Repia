@@ -43,6 +43,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // SPA 라우트(딥링크/새로고침)를 index.html로 폴백 — 오프라인/SW 경로 404 방지
+        navigateFallback: 'index.html',
       },
     }),
   ],
