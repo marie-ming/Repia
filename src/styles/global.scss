@@ -1808,6 +1808,43 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
       margin-bottom: 0;
     }
   }
+
+  &__create {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.9rem;
+    margin-bottom: 0.6rem;
+    background: var(--color-surface);
+    border: 1px dashed var(--color-primary);
+    border-radius: 0.7rem;
+  }
+
+  &__create-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  &__create-label {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+  }
+
+  // 기본 상태: 눈에 띄지 않는 작은 링크
+  &__create-link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.1rem 0.7rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    background: none;
+
+    strong {
+      color: var(--color-primary);
+    }
+  }
 }
 
 .exercise-card--selected {

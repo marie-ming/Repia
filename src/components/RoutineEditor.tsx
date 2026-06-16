@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { RoutineExercise, SetEntry, ExerciseMetric, Exercise } from '../db/types.ts'
+// (ExerciseMetric은 picker 콜백 시그니처에 사용)
 import { ExercisePicker } from './ExercisePicker.tsx'
 import { SetRow } from './SetRow.tsx'
 
@@ -9,9 +10,17 @@ interface RoutineEditorProps {
   exercises: Exercise[] // 운동 카탈로그 (이름·측정 방식·picker)
   // 운동 추가 시 그 운동의 직전 세트 구성으로 프리필 (없으면 1세트 0/0)
   lastSetsByExercise?: Map<string, SetEntry[]>
+  // picker에서 새 운동 즉시 생성
+  onCreateExercise?: (name: string, metric: ExerciseMetric) => Promise<Exercise>
 }
 
-export function RoutineEditor({ value, onChange, exercises, lastSetsByExercise }: RoutineEditorProps) {
+export function RoutineEditor({
+  value,
+  onChange,
+  exercises,
+  lastSetsByExercise,
+  onCreateExercise,
+}: RoutineEditorProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
 
   function exerciseName(exId: string): string {
@@ -91,7 +100,7 @@ export function RoutineEditor({ value, onChange, exercises, lastSetsByExercise }
         type="button"
         className="add-exercise-btn"
         onClick={() => setPickerOpen(true)}
-        disabled={exercises.length === 0}
+        disabled={exercises.length === 0 && !onCreateExercise}
       >
         + 운동 추가
       </button>
@@ -102,6 +111,7 @@ export function RoutineEditor({ value, onChange, exercises, lastSetsByExercise }
         excludeIds={[]}
         onClose={() => setPickerOpen(false)}
         onConfirm={handlePickerConfirm}
+        onCreateExercise={onCreateExercise}
       />
     </div>
   )
