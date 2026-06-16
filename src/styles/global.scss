@@ -1079,6 +1079,18 @@ button {
     }
   }
 
+  // 흰 사진에서도 점이 보이도록 하단에 옅은 그라데이션 스크림
+  &__dots::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.75rem;
+    height: 3rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent);
+    pointer-events: none;
+  }
+
   &__dots {
     position: absolute;
     bottom: 0.75rem;
@@ -1090,10 +1102,11 @@ button {
   }
 
   &__dot {
+    position: relative;
     width: 0.45rem;
     height: 0.45rem;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.5);
 
     &--active {
       background: #fff;
