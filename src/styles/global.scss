@@ -1530,8 +1530,10 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
     color: #fff;
   }
 
+  // 보조 버튼 기본값: 페이지 배경(--color-bg) 위 대비용 surface 채움.
+  // 가장 흔한 컨텍스트라 기본으로 둔다. 다이얼로그 안에서는 아래서 오버라이드.
   &--ghost {
-    background: var(--color-bg);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     color: var(--color-text);
   }
@@ -1541,6 +1543,11 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
     border: 1px solid rgba(233, 69, 96, 0.45);
     color: var(--color-primary);
   }
+}
+
+// 다이얼로그 배경이 --color-surface라 그 안의 ghost는 한 단계 어둡게(bg) 대비
+.dialog .btn--ghost {
+  background: var(--color-bg);
 }
 
 // Trainer home (sticky title + calendar)
