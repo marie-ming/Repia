@@ -40,6 +40,7 @@ export function ExerciseDetailPage() {
   const [activePhoto, setActivePhoto] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
+  const [confirmShare, setConfirmShare] = useState(false)
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -90,7 +91,16 @@ export function ExerciseDetailPage() {
     }
   }
 
-  async function handleShare() {
+  function handleShare() {
+    if (!exercise) return
+    if (exercise.photos.length > 2) {
+      setConfirmShare(true)
+      return
+    }
+    runShare()
+  }
+
+  async function runShare() {
     if (!exercise) return
     try {
       const blob = await generateExerciseShareImage(exercise)
@@ -285,6 +295,15 @@ export function ExerciseDetailPage() {
           </li>
         </ul>
       </BottomSheet>
+
+      <ConfirmDialog
+        open={confirmShare}
+        title="사진 2장까지만 공유돼요"
+        message="공유 이미지에는 첫 2장의 사진만 포함됩니다."
+        confirmLabel="공유"
+        onConfirm={() => { setConfirmShare(false); runShare() }}
+        onCancel={() => setConfirmShare(false)}
+      />
 
       <ConfirmDialog
         open={confirmDel}
