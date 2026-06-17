@@ -2031,6 +2031,29 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
   }
 }
 
+.detail__body--fill {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-reset {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+
+  &__btn {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    background: none;
+    padding: 0.4rem 0.6rem;
+
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+}
+
 .settings-toggle {
   display: flex;
   align-items: center;

@@ -91,7 +91,7 @@ export function DataSettingsPage() {
         <h1 className="detail__bar-title">데이터 관리</h1>
         <span className="detail__bar-spacer" aria-hidden="true" />
       </header>
-      <div className="detail__body">
+      <div className="detail__body detail__body--fill">
         <section className="settings-section">
           <h2 className="settings-section__title">데이터 백업</h2>
           <p className="settings-section__desc">
@@ -117,8 +117,8 @@ export function DataSettingsPage() {
 
         <section className="settings-section">
           <h2 className="settings-section__title">데이터 복원</h2>
-          <p className="settings-section__desc settings-section__desc--warn">
-            기존 데이터가 모두 삭제되고 백업 파일로 교체됩니다.
+          <p className="settings-section__desc">
+            백업 파일의 내용으로 현재 데이터를 교체합니다.
           </p>
           <button
             type="button"
@@ -154,20 +154,16 @@ export function DataSettingsPage() {
           </section>
         )}
 
-        <section className="settings-section">
-          <h2 className="settings-section__title">설정 및 데이터 초기화</h2>
-          <p className="settings-section__desc settings-section__desc--warn">
-            모든 데이터와 모드 설정이 삭제되어 최초 상태로 돌아갑니다.
-          </p>
+        <div className="settings-reset">
           <button
             type="button"
-            className="btn btn--ghost"
+            className="settings-reset__btn"
             onClick={() => setConfirmReset(true)}
             disabled={busy}
           >
-            초기화
+            데이터 초기화
           </button>
-        </section>
+        </div>
       </div>
 
       <ConfirmDialog
