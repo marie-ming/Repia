@@ -9,6 +9,7 @@ interface MenuItem {
 
 const ITEMS: MenuItem[] = [
   { label: '데이터 관리', desc: '백업 · 복원', to: '/settings/data' },
+  { label: '업데이트 내역', desc: '버전별 변경 사항', to: '/settings/updates' },
 ]
 
 export function SettingsPage() {
