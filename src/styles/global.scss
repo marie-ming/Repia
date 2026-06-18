@@ -1125,6 +1125,70 @@ button {
   }
 }
 
+// 운동 상세: 스크롤 시 사진이 줄고 제목이 상단에 고정되는 collapsing 헤더
+.exdetail {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--color-bg);
+
+  &__hero {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    z-index: 0;
+    background: var(--color-surface);
+
+    .carousel,
+    .carousel__item {
+      height: 100%;
+      aspect-ratio: auto;
+    }
+  }
+
+  &__hero-empty {
+    display: grid;
+    place-items: center;
+    height: 100%;
+
+    .exercise-card__thumb-empty {
+      font-size: 4rem;
+    }
+  }
+
+  &__scroll {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1;
+  }
+
+  // 사진이 비치도록 투명한 자리. 스크롤하면 제목이 이 위로 올라와 고정된다.
+  &__spacer {
+    flex-shrink: 0;
+  }
+
+  &__title {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: 0;
+    padding: 1rem 1.25rem 0.75rem;
+    background: var(--color-bg);
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  &__content {
+    padding: 0 1.25rem 1.25rem;
+    background: var(--color-bg);
+  }
+}
+
 // Custom select (themed dropdown)
 .select {
   position: relative;

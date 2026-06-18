@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
@@ -47,6 +47,20 @@ export function ExerciseDetailPage() {
   const [confirmDel, setConfirmDel] = useState(false)
   const [confirmShare, setConfirmShare] = useState(false)
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
+  const [fullH, setFullH] = useState(0) // 사진 풀높이(4:3)
+  const [heroH, setHeroH] = useState<number | null>(null) // 현재 사진 높이(null=풀)
+
+  // 사진 풀높이 = 뷰포트 폭 기준 4:3 (.exdetail은 전체폭). 리사이즈 대응
+  useLayoutEffect(() => {
+    const measure = () => setFullH(Math.round((window.innerWidth * 3) / 4))
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  function onBodyScroll(e: React.UIEvent<HTMLDivElement>) {
+    setHeroH(Math.max(0, fullH - e.currentTarget.scrollTop))
+  }
 
   const load = useCallback(async () => {
     if (!id) return
@@ -158,34 +172,39 @@ export function ExerciseDetailPage() {
         </button>
       </header>
 
-      {exercise.photos.length > 0 ? (
-        <div className="carousel-wrap">
-          <div className="carousel" onScroll={onCarouselScroll}>
-            {exercise.photos.map((photo, i) => (
-              <div className="carousel__item" key={i}>
-                <img src={photo} alt={`${exercise.name} 사진 ${i + 1}`} />
+      <div className="exdetail">
+        <div className="exdetail__hero" style={{ height: heroH ?? fullH }}>
+          {exercise.photos.length > 0 ? (
+            <>
+              <div className="carousel" onScroll={onCarouselScroll}>
+                {exercise.photos.map((photo, i) => (
+                  <div className="carousel__item" key={i}>
+                    <img src={photo} alt={`${exercise.name} 사진 ${i + 1}`} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          {exercise.photos.length > 1 && (
-            <div className="carousel__dots">
-              {exercise.photos.map((_, i) => (
-                <span
-                  key={i}
-                  className={i === activePhoto ? 'carousel__dot carousel__dot--active' : 'carousel__dot'}
-                />
-              ))}
+              {exercise.photos.length > 1 && (
+                <div className="carousel__dots">
+                  {exercise.photos.map((_, i) => (
+                    <span
+                      key={i}
+                      className={i === activePhoto ? 'carousel__dot carousel__dot--active' : 'carousel__dot'}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="exdetail__hero-empty">
+              <span className="exercise-card__thumb-empty">💪</span>
             </div>
           )}
         </div>
-      ) : (
-        <div className="carousel-wrap carousel-wrap--empty">
-          <span className="exercise-card__thumb-empty">💪</span>
-        </div>
-      )}
 
-      <div className="detail__body">
-        <h1 className="detail__title">{exercise.name}</h1>
+        <div className="exdetail__scroll" onScroll={onBodyScroll}>
+          <div className="exdetail__spacer" style={{ height: fullH }} aria-hidden="true" />
+          <h1 className="exdetail__title">{exercise.name}</h1>
+          <div className="exdetail__content">
 
         <dl className="info-list">
           <div className="info-list__row">
@@ -259,6 +278,8 @@ export function ExerciseDetailPage() {
             </ul>
           </>
         )}
+          </div>
+        </div>
       </div>
 
       <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} title={exercise.name}>
