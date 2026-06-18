@@ -697,15 +697,14 @@ button {
 .exrec-item {
   width: 100%;
   display: flex;
-  align-items: baseline;
-  gap: 0.85rem;
+  align-items: center;
+  gap: 0.7rem;
   padding: 0.7rem 0.15rem;
   text-align: left;
   border-bottom: 1px solid var(--color-border);
 
   &__date {
     flex-shrink: 0;
-    min-width: 6.2em;
     font-size: 0.8rem;
     color: var(--color-text-secondary);
     font-variant-numeric: tabular-nums;
@@ -714,9 +713,21 @@ button {
   &__sets {
     flex: 1;
     min-width: 0;
-    font-size: 0.88rem;
-    color: var(--color-text);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
   }
+}
+
+.exrec-chip {
+  display: inline-block;
+  padding: 0.18rem 0.5rem;
+  border-radius: 0.4rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 0.82rem;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
 // 루틴 카테고리 배지 (제목 옆)

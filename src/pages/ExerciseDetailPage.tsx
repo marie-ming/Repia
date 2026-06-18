@@ -15,8 +15,13 @@ import {
   ShareIcon,
   TrashIcon,
 } from '../components/icons.tsx'
-import { EXERCISE_CATEGORY_LABELS, EQUIPMENT_LABELS, gripLabel, formatSet } from '../constants.ts'
-import { formatShortDateWithWeekday } from '../utils/date.ts'
+import {
+  EXERCISE_CATEGORY_LABELS,
+  EQUIPMENT_LABELS,
+  gripLabel,
+  formatSetShort,
+} from '../constants.ts'
+import { formatShortDate } from '../utils/date.ts'
 import { generateExerciseShareImage } from '../utils/shareImage.ts'
 
 interface RecentItem {
@@ -26,7 +31,7 @@ interface RecentItem {
   to: string
 }
 
-const RECENT_LIMIT = 5
+const RECENT_LIMIT = 3
 
 export function ExerciseDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -238,10 +243,14 @@ export function ExerciseDetailPage() {
               {recent.map((r) => (
                 <li key={r.id}>
                   <button type="button" className="exrec-item" onClick={() => navigate(r.to)}>
-                    <span className="exrec-item__date">{formatShortDateWithWeekday(r.date)}</span>
+                    <span className="exrec-item__date">{formatShortDate(r.date)}</span>
                     {r.sets.length > 0 && (
                       <span className="exrec-item__sets">
-                        {r.sets.map((s) => formatSet(exercise.metric, s)).join(', ')}
+                        {r.sets.map((s, i) => (
+                          <span key={i} className="exrec-chip">
+                            {formatSetShort(exercise.metric, s)}
+                          </span>
+                        ))}
                       </span>
                     )}
                   </button>
