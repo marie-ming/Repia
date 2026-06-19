@@ -1000,6 +1000,26 @@ button {
     color: var(--color-text-secondary);
     margin-left: 0.1rem;
   }
+
+  // 기록 상세 한정: 숫자는 밝고 굵게, 단위/기호는 죽여서 대비
+  &--emph {
+    .routine-readonly__set-no {
+      font-size: 0.75rem;
+    }
+
+    .routine-readonly__set-val {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .routine-readonly__set-val em {
+      font-weight: 400;
+      font-size: 0.78rem;
+      margin-left: 0;
+    }
+  }
 }
 
 // Label-value info list (exercise detail)
