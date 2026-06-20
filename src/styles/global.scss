@@ -697,15 +697,14 @@ button {
 .exrec-item {
   width: 100%;
   display: flex;
-  align-items: baseline;
-  gap: 0.85rem;
+  align-items: center;
+  gap: 0.7rem;
   padding: 0.7rem 0.15rem;
   text-align: left;
   border-bottom: 1px solid var(--color-border);
 
   &__date {
     flex-shrink: 0;
-    min-width: 6.2em;
     font-size: 0.8rem;
     color: var(--color-text-secondary);
     font-variant-numeric: tabular-nums;
@@ -714,9 +713,21 @@ button {
   &__sets {
     flex: 1;
     min-width: 0;
-    font-size: 0.88rem;
-    color: var(--color-text);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
   }
+}
+
+.exrec-chip {
+  display: inline-block;
+  padding: 0.18rem 0.5rem;
+  border-radius: 0.4rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 0.82rem;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
 // 루틴 카테고리 배지 (제목 옆)
@@ -938,9 +949,45 @@ button {
     margin-bottom: 0.5rem;
   }
 
+  &__headmain {
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.5rem;
+  }
+
   &__name {
     font-size: 0.95rem;
     font-weight: 600;
+  }
+
+  &__progress {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__best {
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.35rem;
+    background: rgba(233, 69, 96, 0.15);
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  &__delta {
+    font-weight: 600;
+
+    &--up {
+      color: var(--color-primary);
+    }
+
+    &--down {
+      color: var(--color-text-secondary);
+    }
   }
 
   &__link {
@@ -973,21 +1020,28 @@ button {
     display: flex;
     align-items: baseline;
     gap: 0.6rem;
-    font-size: 0.9rem;
-    color: var(--color-text);
   }
 
   &__set-no {
     width: 1.2rem;
     color: var(--color-text-secondary);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
+  // 숫자는 밝고 굵게
+  &__set-val {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  // 단위/기호(kg·×·회)는 약화해 대비
   &__set-val em {
     font-style: normal;
-    font-size: 0.8rem;
+    font-weight: 400;
+    font-size: 0.78rem;
     color: var(--color-text-secondary);
-    margin-left: 0.1rem;
   }
 }
 
@@ -1079,6 +1133,18 @@ button {
     }
   }
 
+  // 흰 사진에서도 점이 보이도록 하단에 옅은 그라데이션 스크림
+  &__dots::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.75rem;
+    height: 3rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent);
+    pointer-events: none;
+  }
+
   &__dots {
     position: absolute;
     bottom: 0.75rem;
@@ -1090,14 +1156,112 @@ button {
   }
 
   &__dot {
+    position: relative;
     width: 0.45rem;
     height: 0.45rem;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.5);
 
     &--active {
       background: #fff;
     }
+  }
+}
+
+// 기록 상세: 제목 + 날짜·상태를 상단에 고정, 운동 목록은 그 아래로 스크롤
+.detail__body--stickyhead {
+  padding-top: 0;
+}
+
+.logdetail__head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-bg);
+  margin: 0 -1.25rem 0.5rem;
+  padding: 1.25rem 1.25rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+
+  .detail__title {
+    margin-bottom: 0;
+  }
+}
+
+.logdetail__titlerow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.logdetail__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+// 운동 상세: 스크롤 시 사진이 줄고 제목이 상단에 고정되는 collapsing 헤더
+.exdetail {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--color-bg);
+
+  &__hero {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    z-index: 0;
+    background: var(--color-surface);
+
+    .carousel,
+    .carousel__item {
+      height: 100%;
+      aspect-ratio: auto;
+    }
+  }
+
+  &__hero-empty {
+    display: grid;
+    place-items: center;
+    height: 100%;
+
+    .exercise-card__thumb-empty {
+      font-size: 4rem;
+    }
+  }
+
+  &__scroll {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1;
+  }
+
+  // 사진이 비치도록 투명한 자리. 스크롤하면 제목이 이 위로 올라와 고정된다.
+  &__spacer {
+    flex-shrink: 0;
+  }
+
+  &__title {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: 0;
+    padding: 1rem 1.25rem 0.75rem;
+    background: var(--color-bg);
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  &__content {
+    padding: 0 1.25rem 1.25rem;
+    background: var(--color-bg);
   }
 }
 
@@ -1517,8 +1681,10 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
     color: #fff;
   }
 
+  // 보조 버튼 기본값: 페이지 배경(--color-bg) 위 대비용 surface 채움.
+  // 가장 흔한 컨텍스트라 기본으로 둔다. 다이얼로그 안에서는 아래서 오버라이드.
   &--ghost {
-    background: var(--color-bg);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     color: var(--color-text);
   }
@@ -1528,6 +1694,11 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
     border: 1px solid rgba(233, 69, 96, 0.45);
     color: var(--color-primary);
   }
+}
+
+// 다이얼로그 배경이 --color-surface라 그 안의 ghost는 한 단계 어둡게(bg) 대비
+.dialog .btn--ghost {
+  background: var(--color-bg);
 }
 
 // Trainer home (sticky title + calendar)
@@ -1808,6 +1979,43 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
       margin-bottom: 0;
     }
   }
+
+  &__create {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.9rem;
+    margin-bottom: 0.6rem;
+    background: var(--color-surface);
+    border: 1px dashed var(--color-primary);
+    border-radius: 0.7rem;
+  }
+
+  &__create-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  &__create-label {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+  }
+
+  // 기본 상태: 눈에 띄지 않는 작은 링크
+  &__create-link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.1rem 0.7rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    background: none;
+
+    strong {
+      color: var(--color-primary);
+    }
+  }
 }
 
 .exercise-card--selected {
@@ -1941,6 +2149,58 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
 
     &--warn {
       color: var(--color-primary);
+    }
+  }
+}
+
+.updates {
+  &__group {
+    margin-bottom: 0.85rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__group-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 0.4rem;
+  }
+
+  &__list {
+    margin: 0;
+    padding-left: 1.1rem;
+    list-style: disc;
+
+    li {
+      font-size: 0.88rem;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+    }
+  }
+}
+
+.detail__body--fill {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-reset {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+
+  &__btn {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    background: none;
+    padding: 0.4rem 0.6rem;
+
+    &:disabled {
+      opacity: 0.5;
     }
   }
 }

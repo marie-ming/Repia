@@ -8,13 +8,13 @@ import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import {
   ChevronLeftIcon,
-  ChevronRightIcon,
   CopyIcon,
   MoreIcon,
   PencilIcon,
   TrashIcon,
 } from '../components/icons.tsx'
-import { EXERCISE_CATEGORY_LABELS, formatSet } from '../constants.ts'
+import { EXERCISE_CATEGORY_LABELS } from '../constants.ts'
+import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
 
 export function RoutineTemplateDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -40,14 +40,6 @@ export function RoutineTemplateDetailPage() {
   useEffect(() => {
     load()
   }, [load])
-
-  function exerciseName(exId: string): string {
-    return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
-  }
-
-  function metricFor(exId: string) {
-    return exercises.find((e) => e.id === exId)?.metric ?? 'weight_reps'
-  }
 
   async function handleDelete() {
     if (!template) return
@@ -104,33 +96,11 @@ export function RoutineTemplateDetailPage() {
         {!hasExercises ? (
           <p className="info-list__empty">등록된 운동이 없습니다.</p>
         ) : (
-          <ul className="routine-readonly">
-            {template.exercises.map((r, ri) => (
-              <li key={ri} className="routine-readonly__ex">
-                <div className="routine-readonly__head">
-                  <h3 className="routine-readonly__name">{exerciseName(r.exerciseId)}</h3>
-                  <button
-                    type="button"
-                    className="routine-readonly__link"
-                    onClick={() => navigate(`/exercises/${r.exerciseId}`)}
-                    aria-label="운동 상세 보기"
-                  >
-                    <ChevronRightIcon className="routine-readonly__chevron" />
-                  </button>
-                </div>
-                <ul className="routine-readonly__sets">
-                  {r.sets.map((s, si) => (
-                    <li key={si} className="routine-readonly__set">
-                      <span className="routine-readonly__set-no">{si + 1}</span>
-                      <span className="routine-readonly__set-val">
-                        {formatSet(metricFor(r.exerciseId), s)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
+          <RoutineReadonly
+            items={template.exercises}
+            exercises={exercises}
+            onExerciseClick={(exId) => navigate(`/exercises/${exId}`)}
+          />
         )}
 
         {template.memo && (

@@ -5,6 +5,7 @@ import type {
   RoutineLogStatus,
   RoutineExercise,
   SetEntry,
+  ExerciseMetric,
   Exercise,
 } from '../db/types.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
@@ -141,6 +142,12 @@ export function RoutineLogFormPage() {
     return map
   }, [history, id])
 
+  async function handleCreateExercise(name: string, metric: ExerciseMetric) {
+    const ex = await exercisesRepo.create({ name, metric })
+    setExercises((prev) => [...prev, ex])
+    return ex
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSave) return
@@ -263,6 +270,7 @@ export function RoutineLogFormPage() {
               onChange={(exercisesList) => setForm((f) => ({ ...f, exercises: exercisesList }))}
               exercises={exercises}
               lastSetsByExercise={lastSetsByExercise}
+              onCreateExercise={handleCreateExercise}
             />
           </div>
 

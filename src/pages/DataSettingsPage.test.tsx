@@ -76,7 +76,7 @@ describe('DataSettingsPage', () => {
 
   it('초기화 섹션 + ConfirmDialog 흐름', async () => {
     renderPage()
-    await userEvent.click(screen.getByRole('button', { name: '초기화' }))
+    await userEvent.click(screen.getByRole('button', { name: '데이터 초기화' }))
     expect(await screen.findByText('정말 초기화할까요?')).toBeInTheDocument()
     // ConfirmDialog 내 초기화 버튼만 클릭
     const dialog = screen.getByRole('alertdialog')
@@ -88,7 +88,7 @@ describe('DataSettingsPage', () => {
 
   it('초기화 취소 시 다이얼로그 닫힘', async () => {
     renderPage()
-    await userEvent.click(screen.getByRole('button', { name: '초기화' }))
+    await userEvent.click(screen.getByRole('button', { name: '데이터 초기화' }))
     await userEvent.click(screen.getByRole('button', { name: '취소' }))
     expect(screen.queryByText('정말 초기화할까요?')).not.toBeInTheDocument()
   })

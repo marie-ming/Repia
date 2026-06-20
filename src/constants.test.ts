@@ -9,7 +9,6 @@ import {
   SESSION_STATUS_OPTIONS,
   gripLabel,
   formatDuration,
-  formatSet,
   bestSetLabel,
 } from './constants.ts'
 
@@ -103,23 +102,6 @@ describe('formatDuration', () => {
     expect(formatDuration(45)).toBe('0:45')
     expect(formatDuration(90)).toBe('1:30')
     expect(formatDuration(605)).toBe('10:05')
-  })
-})
-
-describe('formatSet (측정 방식별)', () => {
-  it('weight_reps', () => {
-    expect(formatSet('weight_reps', { weight: 100, reps: 5 })).toBe('100kg × 5회')
-  })
-  it('reps', () => {
-    expect(formatSet('reps', { weight: 0, reps: 15 })).toBe('15회')
-  })
-  it('time', () => {
-    expect(formatSet('time', { weight: 0, reps: 0, seconds: 75 })).toBe('1:15')
-  })
-  it('distance_time', () => {
-    expect(formatSet('distance_time', { weight: 0, reps: 0, seconds: 1800, distance: 5 })).toBe(
-      '5km · 30:00',
-    )
   })
 })
 

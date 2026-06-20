@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { Exercise, ExerciseCategory, Equipment } from '../db/types.ts'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { Exercise, ExerciseCategory, Equipment, ExerciseMetric } from '../db/types.ts'
 import { CheckIcon, SearchIcon, ChevronLeftIcon } from './icons.tsx'
 import {
   EXERCISE_CATEGORY_OPTIONS,
   EXERCISE_CATEGORY_LABELS,
   EQUIPMENT_OPTIONS,
   EQUIPMENT_LABELS,
+  EXERCISE_METRIC_OPTIONS,
 } from '../constants.ts'
 
 type CategoryFilter = ExerciseCategory | 'all'
@@ -17,6 +18,8 @@ interface ExercisePickerProps {
   excludeIds: string[] // already added — hidden from the picker
   onClose: () => void
   onConfirm: (ids: string[]) => void
+  // 검색어로 새 운동 즉시 생성 (제공 시 picker 안에서 만들기 노출)
+  onCreateExercise?: (name: string, metric: ExerciseMetric) => Promise<Exercise>
 }
 
 export function ExercisePicker({
@@ -25,11 +28,25 @@ export function ExercisePicker({
   excludeIds,
   onClose,
   onConfirm,
+  onCreateExercise,
 }: ExercisePickerProps) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<CategoryFilter>('all')
   const [equipment, setEquipment] = useState<EquipmentFilter>('all')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [creating, setCreating] = useState(false)
+  const [createMetric, setCreateMetric] = useState<ExerciseMetric>('weight_reps')
+  const [createExpanded, setCreateExpanded] = useState(false)
+  const [justCreatedId, setJustCreatedId] = useState<string | null>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+
+  // 새로 만든 운동 카드로 자동 스크롤
+  useEffect(() => {
+    if (!justCreatedId) return
+    const el = listRef.current?.querySelector(`[data-ex-id="${justCreatedId}"]`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setJustCreatedId(null)
+  }, [justCreatedId, exercises])
 
   useEffect(() => {
     if (open) {
@@ -37,6 +54,10 @@ export function ExercisePicker({
       setQuery('')
       setCategory('all')
       setEquipment('all')
+      setCreating(false)
+      setCreateMetric('weight_reps')
+      setCreateExpanded(false)
+      setJustCreatedId(null)
     }
   }, [open])
 
@@ -62,6 +83,29 @@ export function ExercisePicker({
       else next.add(id)
       return next
     })
+  }
+
+  const createName = query.trim()
+  const canCreate =
+    !!onCreateExercise &&
+    createName.length > 0 &&
+    !exercises.some((e) => e.name.trim() === createName)
+
+  async function handleCreate() {
+    if (!onCreateExercise || !createName) return
+    setCreating(true)
+    try {
+      const ex = await onCreateExercise(createName, createMetric)
+      setSelected((prev) => new Set(prev).add(ex.id))
+      setQuery('')
+      setCategory('all')
+      setEquipment('all')
+      setCreateMetric('weight_reps')
+      setCreateExpanded(false)
+      setJustCreatedId(ex.id)
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (
@@ -90,7 +134,10 @@ export function ExercisePicker({
               className="search__input"
               type="search"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setCreateExpanded(false) // 검색어 바뀌면 만들기 패널 접기
+              }}
               placeholder="운동 이름 검색"
             />
           </div>
@@ -135,14 +182,54 @@ export function ExercisePicker({
         </div>
         </div>
 
+        {canCreate &&
+          (createExpanded ? (
+            <div className="picker__create">
+              <span className="picker__create-title">“{createName}” 새 운동 만들기</span>
+              <span className="picker__create-label">측정 방식</span>
+              <div className="chips chips--wrap">
+                {EXERCISE_METRIC_OPTIONS.map((opt) => (
+                  <button
+                    type="button"
+                    key={opt.value}
+                    className={createMetric === opt.value ? 'chip chip--active' : 'chip'}
+                    onClick={() => setCreateMetric(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={handleCreate}
+                disabled={creating}
+              >
+                만들기
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="picker__create-link"
+              onClick={() => setCreateExpanded(true)}
+            >
+              + “{createName}” 새 운동 만들기
+            </button>
+          ))}
+
         {visible.length === 0 ? (
-          <p className="page__placeholder">선택할 운동이 없습니다.</p>
+          <p className="page__placeholder">
+            {onCreateExercise
+              ? '운동 이름을 검색해 새로 만들 수 있어요.'
+              : '선택할 운동이 없습니다.'}
+          </p>
         ) : (
-          <ul className="exercise-list">
+          <ul className="exercise-list" ref={listRef}>
             {visible.map((ex) => {
               const isSel = selected.has(ex.id)
               return (
-                <li key={ex.id}>
+                <li key={ex.id} data-ex-id={ex.id}>
                   <button
                     type="button"
                     className={isSel ? 'exercise-card exercise-card--selected' : 'exercise-card'}

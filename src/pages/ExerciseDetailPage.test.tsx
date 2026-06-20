@@ -81,7 +81,7 @@ describe('ExerciseDetailPage', () => {
     })
     renderPage(ex.id, 'personal')
     expect(await screen.findByText('최근 기록')).toBeInTheDocument()
-    expect(screen.getByText('100kg × 5회')).toBeInTheDocument()
+    expect(screen.getByText('100kg×5')).toBeInTheDocument()
   })
 
   it('케밥 → 삭제 → 확인 → 삭제 완료', async () => {

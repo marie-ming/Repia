@@ -3,9 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import type { Session, Exercise } from '../db/types.ts'
-import { ChevronLeftIcon, ChevronRightIcon } from '../components/icons.tsx'
-import { SESSION_STATUS_LABELS, formatSet } from '../constants.ts'
+import { ChevronLeftIcon } from '../components/icons.tsx'
+import { SESSION_STATUS_LABELS } from '../constants.ts'
 import { formatDotDate } from '../utils/date.ts'
+import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
 
 export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -25,14 +26,6 @@ export function SessionDetailPage() {
   useEffect(() => {
     load()
   }, [load])
-
-  function exerciseName(exId: string): string {
-    return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
-  }
-
-  function metricFor(exId: string) {
-    return exercises.find((e) => e.id === exId)?.metric ?? 'weight_reps'
-  }
 
   if (loading) {
     return <div className="detail"><p className="page__placeholder">불러오는 중...</p></div>
@@ -88,33 +81,11 @@ export function SessionDetailPage() {
         {session.routine.length === 0 ? (
           <p className="info-list__empty">기록된 운동이 없습니다.</p>
         ) : (
-          <ul className="routine-readonly">
-            {session.routine.map((r, ri) => (
-              <li key={ri} className="routine-readonly__ex">
-                <div className="routine-readonly__head">
-                  <h3 className="routine-readonly__name">{exerciseName(r.exerciseId)}</h3>
-                  <button
-                    type="button"
-                    className="routine-readonly__link"
-                    onClick={() => navigate(`/exercises/${r.exerciseId}`)}
-                    aria-label="운동 상세 보기"
-                  >
-                    <ChevronRightIcon className="routine-readonly__chevron" />
-                  </button>
-                </div>
-                <ul className="routine-readonly__sets">
-                  {r.sets.map((s, si) => (
-                    <li key={si} className="routine-readonly__set">
-                      <span className="routine-readonly__set-no">{si + 1}</span>
-                      <span className="routine-readonly__set-val">
-                        {formatSet(metricFor(r.exerciseId), s)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
+          <RoutineReadonly
+            items={session.routine}
+            exercises={exercises}
+            onExerciseClick={(exId) => navigate(`/exercises/${exId}`)}
+          />
         )}
 
         {session.memo && (

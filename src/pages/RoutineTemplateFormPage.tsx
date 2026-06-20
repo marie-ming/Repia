@@ -7,6 +7,7 @@ import type {
   SetEntry,
   Exercise,
   ExerciseCategory,
+  ExerciseMetric,
 } from '../db/types.ts'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
@@ -99,6 +100,12 @@ export function RoutineTemplateFormPage() {
       if (f.categories.length >= MAX_CATEGORIES) return f
       return { ...f, categories: [...f.categories, value] }
     })
+  }
+
+  async function handleCreateExercise(name: string, metric: ExerciseMetric) {
+    const ex = await exercisesRepo.create({ name, metric })
+    setExercises((prev) => [...prev, ex])
+    return ex
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -199,6 +206,7 @@ export function RoutineTemplateFormPage() {
               onChange={(exercisesList) => setForm((f) => ({ ...f, exercises: exercisesList }))}
               exercises={exercises}
               lastSetsByExercise={lastSetsByExercise}
+              onCreateExercise={handleCreateExercise}
             />
           </div>
 

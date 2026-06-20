@@ -1,23 +1,54 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
-import type { RoutineLog, Exercise } from '../db/types.ts'
+import type { RoutineLog, Exercise, ExerciseCategory, ExerciseMetric, SetEntry } from '../db/types.ts'
 import { BottomSheet } from '../components/BottomSheet.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import {
   ChevronLeftIcon,
-  ChevronRightIcon,
   ClipboardListIcon,
   CopyIcon,
   MoreIcon,
   PencilIcon,
   TrashIcon,
 } from '../components/icons.tsx'
-import { ROUTINE_LOG_STATUS_LABELS, formatSet } from '../constants.ts'
+import {
+  ROUTINE_LOG_STATUS_LABELS,
+  EXERCISE_CATEGORY_LABELS,
+  formatDuration,
+} from '../constants.ts'
 import { formatDotDate } from '../utils/date.ts'
+import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
+
+// 측정 방식별 "최고" 수치 (없으면 null)
+function bestValue(metric: ExerciseMetric, sets: SetEntry[]): number | null {
+  if (sets.length === 0) return null
+  const v = (s: SetEntry) =>
+    metric === 'reps'
+      ? s.reps
+      : metric === 'time'
+        ? s.seconds ?? 0
+        : metric === 'distance_time'
+          ? s.distance ?? 0
+          : s.weight
+  return Math.max(...sets.map(v))
+}
+
+function formatBest(metric: ExerciseMetric, val: number): string {
+  switch (metric) {
+    case 'reps':
+      return `${val}회`
+    case 'time':
+      return formatDuration(val)
+    case 'distance_time':
+      return `${val}km`
+    default:
+      return `${val}kg`
+  }
+}
 
 export function RoutineLogDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -25,15 +56,21 @@ export function RoutineLogDetailPage() {
   const showToast = useToast()
   const [log, setLog] = useState<RoutineLog | null>(null)
   const [exercises, setExercises] = useState<Exercise[]>([])
+  const [allLogs, setAllLogs] = useState<RoutineLog[]>([])
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
 
   const load = useCallback(async () => {
     if (!id) return
-    const [l, exs] = await Promise.all([routineLogsRepo.findById(id), exercisesRepo.findAll()])
+    const [l, exs, logs] = await Promise.all([
+      routineLogsRepo.findById(id),
+      exercisesRepo.findAll(),
+      routineLogsRepo.findAll(),
+    ])
     setLog(l ?? null)
     setExercises(exs)
+    setAllLogs(logs)
     setLoading(false)
   }, [id])
 
@@ -41,13 +78,44 @@ export function RoutineLogDetailPage() {
     load()
   }, [load])
 
-  function exerciseName(exId: string): string {
-    return exercises.find((e) => e.id === exId)?.name ?? '(삭제된 운동)'
-  }
+  const exMap = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
-  function metricFor(exId: string) {
-    return exercises.find((e) => e.id === exId)?.metric ?? 'weight_reps'
-  }
+  // D: 기록 내 운동들의 첫 번째 카테고리만 모아 부위 태그로 (중복 제거)
+  const bodyTags = useMemo(() => {
+    if (!log) return [] as ExerciseCategory[]
+    const seen = new Set<ExerciseCategory>()
+    const out: ExerciseCategory[] = []
+    for (const r of log.exercises) {
+      const c = exMap.get(r.exerciseId)?.categories[0]
+      if (c && !seen.has(c)) {
+        seen.add(c)
+        out.push(c)
+      }
+    }
+    return out
+  }, [log, exMap])
+
+  // C: 운동별 직전 완료 기록의 최고치 (이전 기록 대비용)
+  const prevBest = useMemo(() => {
+    const map = new Map<string, number | null>()
+    if (!log) return map
+    const cur = log.date + log.time
+    for (const r of log.exercises) {
+      const metric = exMap.get(r.exerciseId)?.metric ?? 'weight_reps'
+      const prev = allLogs
+        .filter(
+          (l) =>
+            l.id !== log.id &&
+            l.status === 'completed' &&
+            l.date + l.time < cur &&
+            l.exercises.some((e) => e.exerciseId === r.exerciseId),
+        )
+        .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))[0]
+      const prevSets = prev?.exercises.find((e) => e.exerciseId === r.exerciseId)?.sets ?? []
+      map.set(r.exerciseId, bestValue(metric, prevSets))
+    }
+    return map
+  }, [log, allLogs, exMap])
 
   async function handleMakeTemplate() {
     if (!log) return
@@ -109,50 +177,62 @@ export function RoutineLogDetailPage() {
         </button>
       </header>
 
-      <div className="detail__body">
-        <h1 className="detail__title">{log.title || '운동 기록'}</h1>
+      <div className="detail__body detail__body--stickyhead">
+        <div className="logdetail__head">
+          <div className="logdetail__titlerow">
+            <h1 className="detail__title">{log.title || '운동 기록'}</h1>
+            {bodyTags.length > 0 && (
+              <div className="logdetail__tags">
+                {bodyTags.map((c) => (
+                  <span key={c} className="mini-badge mini-badge--cat">
+                    {EXERCISE_CATEGORY_LABELS[c]}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
-        <div className="session-detail__meta">
-          <span className="session-detail__when">
-            {formatDotDate(log.date)}
-            {log.time && ` · ${log.time}`}
-          </span>
-          <span className={`session-badge session-badge--${log.status}`}>
-            {ROUTINE_LOG_STATUS_LABELS[log.status]}
-          </span>
+          <div className="session-detail__meta">
+            <span className="session-detail__when">
+              {formatDotDate(log.date)}
+              {log.time && ` · ${log.time}`}
+            </span>
+            <span className={`session-badge session-badge--${log.status}`}>
+              {ROUTINE_LOG_STATUS_LABELS[log.status]}
+            </span>
+          </div>
         </div>
 
         <h2 className="detail__section">운동</h2>
         {!hasExercises ? (
           <p className="info-list__empty">기록된 운동이 없습니다.</p>
         ) : (
-          <ul className="routine-readonly">
-            {log.exercises.map((r, ri) => (
-              <li key={ri} className="routine-readonly__ex">
-                <div className="routine-readonly__head">
-                  <h3 className="routine-readonly__name">{exerciseName(r.exerciseId)}</h3>
-                  <button
-                    type="button"
-                    className="routine-readonly__link"
-                    onClick={() => navigate(`/exercises/${r.exerciseId}`)}
-                    aria-label="운동 상세 보기"
-                  >
-                    <ChevronRightIcon className="routine-readonly__chevron" />
-                  </button>
-                </div>
-                <ul className="routine-readonly__sets">
-                  {r.sets.map((s, si) => (
-                    <li key={si} className="routine-readonly__set">
-                      <span className="routine-readonly__set-no">{si + 1}</span>
-                      <span className="routine-readonly__set-val">
-                        {formatSet(metricFor(r.exerciseId), s)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
+          <RoutineReadonly
+            items={log.exercises}
+            exercises={exercises}
+            onExerciseClick={(exId) => navigate(`/exercises/${exId}`)}
+            renderMeta={(r, metric) => {
+              const cur = bestValue(metric, r.sets)
+              if (cur === null) return null
+              const prev = prevBest.get(r.exerciseId) ?? null
+              return (
+                <span className="routine-readonly__progress">
+                  <span className="routine-readonly__best">최고 {formatBest(metric, cur)}</span>
+                  {prev !== null && cur !== prev && (
+                    <span
+                      className={
+                        cur > prev
+                          ? 'routine-readonly__delta routine-readonly__delta--up'
+                          : 'routine-readonly__delta routine-readonly__delta--down'
+                      }
+                    >
+                      {cur > prev ? '▲' : '▼'} 지난 {formatBest(metric, prev)}
+                    </span>
+                  )}
+                </span>
+              )
+            }}
+          />
         )}
 
         {log.memo && (

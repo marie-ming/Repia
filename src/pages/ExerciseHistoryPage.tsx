@@ -4,8 +4,8 @@ import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import type { Exercise, SetEntry } from '../db/types.ts'
 import { ChevronLeftIcon } from '../components/icons.tsx'
-import { formatSet, bestSetLabel } from '../constants.ts'
-import { formatShortDateWithWeekday } from '../utils/date.ts'
+import { formatSetShort, bestSetLabel } from '../constants.ts'
+import { formatShortDate } from '../utils/date.ts'
 
 interface HistoryItem {
   id: string
@@ -80,10 +80,14 @@ export function ExerciseHistoryPage() {
                     className="exrec-item"
                     onClick={() => navigate(`/logs/${it.id}`)}
                   >
-                    <span className="exrec-item__date">{formatShortDateWithWeekday(it.date)}</span>
+                    <span className="exrec-item__date">{formatShortDate(it.date)}</span>
                     {it.sets.length > 0 && exercise && (
                       <span className="exrec-item__sets">
-                        {it.sets.map((s) => formatSet(exercise.metric, s)).join(', ')}
+                        {it.sets.map((s, i) => (
+                          <span key={i} className="exrec-chip">
+                            {formatSetShort(exercise.metric, s)}
+                          </span>
+                        ))}
                       </span>
                     )}
                   </button>

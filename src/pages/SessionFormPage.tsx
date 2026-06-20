@@ -4,6 +4,7 @@ import type {
   Session,
   SessionStatus,
   RoutineExercise,
+  ExerciseMetric,
   Member,
   Exercise,
 } from '../db/types.ts'
@@ -85,6 +86,11 @@ export function SessionFormPage() {
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
   const canSave = !!form.memberId && !!form.date && (!isEdit || isDirty)
 
+  async function handleCreateExercise(name: string, metric: ExerciseMetric) {
+    const ex = await exercisesRepo.create({ name, metric })
+    setExercises((prev) => [...prev, ex])
+    return ex
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -221,6 +227,7 @@ export function SessionFormPage() {
               value={form.routine}
               onChange={(routine) => setForm((f) => ({ ...f, routine }))}
               exercises={exercises}
+              onCreateExercise={handleCreateExercise}
             />
           </div>
 

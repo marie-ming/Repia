@@ -51,8 +51,8 @@ describe('ExerciseHistoryPage', () => {
     })
     renderPage(ex.id)
     expect(await screen.findByText('총 2회 · 최고 120kg')).toBeInTheDocument()
-    expect(screen.getByText('120kg × 3회')).toBeInTheDocument()
-    expect(screen.getByText('100kg × 5회')).toBeInTheDocument()
+    expect(screen.getByText('120kg×3')).toBeInTheDocument()
+    expect(screen.getByText('100kg×5')).toBeInTheDocument()
   })
 
   it('항목 클릭 시 기록 상세로', async () => {
@@ -64,7 +64,7 @@ describe('ExerciseHistoryPage', () => {
       exercises: [{ exerciseId: ex.id, sets: [{ weight: 100, reps: 5 }] }],
     })
     renderPage(ex.id)
-    await userEvent.click(await screen.findByText('100kg × 5회'))
+    await userEvent.click(await screen.findByText('100kg×5'))
     expect(screen.getByTestId('loc')).toHaveTextContent(`/logs/${l.id}`)
   })
 })

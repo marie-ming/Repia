@@ -6,6 +6,7 @@ import { AppLayout } from './components/AppLayout.tsx'
 import { ExerciseDetailPage } from './pages/ExerciseDetailPage.tsx'
 import { SessionDetailPage } from './pages/SessionDetailPage.tsx'
 import { DataSettingsPage } from './pages/DataSettingsPage.tsx'
+import { UpdatesPage } from './pages/UpdatesPage.tsx'
 import { MemberDetailPage } from './pages/MemberDetailPage.tsx'
 import { ExerciseFormPage } from './pages/ExerciseFormPage.tsx'
 import { SessionFormPage } from './pages/SessionFormPage.tsx'
@@ -70,6 +71,7 @@ function App() {
           <Route path="/exercises/:id" element={<ExerciseDetailPage />} />
           <Route path="/sessions/:id" element={<SessionDetailPage />} />
           <Route path="/settings/data" element={<DataSettingsPage />} />
+          <Route path="/settings/updates" element={<UpdatesPage />} />
           <Route path="/members/:id" element={<MemberDetailPage />} />
           <Route path="/exercises/new" element={<ExerciseFormPage />} />
           <Route path="/exercises/:id/edit" element={<ExerciseFormPage />} />

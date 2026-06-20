@@ -42,6 +42,23 @@ test('시간 측정 운동 기록(분/초 입력)', async ({ page }) => {
   await expect(page.getByText('E2E 플랭크')).toBeVisible()
 })
 
+test('운동 선택 화면에서 새 운동 인라인 생성 (측정 방식 지정)', async ({ page }) => {
+  await gotoPersonalHome(page)
+  // 운동을 미리 등록하지 않고, 기록 추가 → picker에서 바로 생성
+  await page.getByLabel('운동 추가').click()
+  await page.getByRole('button', { name: '+ 운동 추가' }).click()
+  await page.getByPlaceholder('운동 이름 검색').fill('E2E 런닝머신')
+  // 작은 링크 → 펼쳐서 측정 방식 '거리 + 시간' 선택 후 만들기
+  await page.locator('.picker__create-link').click()
+  await page.locator('.picker__create').getByRole('button', { name: '거리 + 시간' }).click()
+  await page.locator('.picker__create').getByRole('button', { name: '만들기' }).click()
+  // 생성 후 자동 선택 → 확정
+  await page.locator('.picker__confirm').click()
+  await expect(page.locator('.routine-ex__name')).toHaveText('E2E 런닝머신')
+  // 측정 방식이 거리+시간으로 반영 → km 단위 입력칸
+  await expect(page.locator('.set-row__unit').first()).toHaveText('km')
+})
+
 test('기록 케밥 → 삭제', async ({ page }) => {
   await gotoPersonalHome(page)
   await addExercise(page, 'E2E 데드')
