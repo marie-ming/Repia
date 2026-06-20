@@ -8,6 +8,8 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-20
+
 ### 수정
 - 운동 상세 collapsing 헤더에서 사진 가로 스와이프가 안 되던 문제. 스크롤 오버레이
   (`exdetail__scroll`)가 사진 위를 덮어 캐러셀이 터치를 못 받던 것을 `pointer-events`로
