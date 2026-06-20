@@ -90,20 +90,6 @@ export function formatDuration(sec: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-// 세트 한 줄 표시 (측정 방식별)
-export function formatSet(metric: ExerciseMetric, s: SetEntry): string {
-  switch (metric) {
-    case 'reps':
-      return `${s.reps}회`
-    case 'time':
-      return formatDuration(s.seconds ?? 0)
-    case 'distance_time':
-      return `${s.distance ?? 0}km · ${formatDuration(s.seconds ?? 0)}`
-    default:
-      return `${s.weight}kg × ${s.reps}회`
-  }
-}
-
 // 세트 축약 표시 (같은 운동 칩처럼 단위 생략해도 되는 곳)
 export function formatSetShort(metric: ExerciseMetric, s: SetEntry): string {
   switch (metric) {

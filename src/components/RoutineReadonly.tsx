@@ -20,7 +20,7 @@ export function RoutineReadonly({
 }: RoutineReadonlyProps) {
   const byId = new Map(exercises.map((e) => [e.id, e]))
   return (
-    <ul className="routine-readonly routine-readonly--emph">
+    <ul className="routine-readonly">
       {items.map((r, ri) => {
         const ex = byId.get(r.exerciseId)
         const metric: ExerciseMetric = ex?.metric ?? 'weight_reps'
