@@ -1241,6 +1241,9 @@ button {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     z-index: 1;
+    // 사진 영역(투명 spacer)으로 들어온 터치는 뒤의 캐러셀이 받도록 통과시키고,
+    // 제목/본문만 이벤트를 받아 스크롤/링크가 동작하게 한다(가로 스와이프 복구).
+    pointer-events: none;
   }
 
   // 사진이 비치도록 투명한 자리. 스크롤하면 제목이 이 위로 올라와 고정된다.
@@ -1257,11 +1260,13 @@ button {
     background: var(--color-bg);
     font-size: 1.2rem;
     font-weight: 700;
+    pointer-events: auto;
   }
 
   &__content {
     padding: 0 1.25rem 1.25rem;
     background: var(--color-bg);
+    pointer-events: auto;
   }
 }
 
