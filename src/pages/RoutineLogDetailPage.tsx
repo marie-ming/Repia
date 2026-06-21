@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
-import type { RoutineLog, Exercise, ExerciseCategory, ExerciseMetric, SetEntry } from '../db/types.ts'
+import type { RoutineLog, Exercise, ExerciseCategory } from '../db/types.ts'
 import { BottomSheet } from '../components/BottomSheet.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
@@ -13,42 +13,14 @@ import {
   CopyIcon,
   MoreIcon,
   PencilIcon,
+  ShareIcon,
   TrashIcon,
 } from '../components/icons.tsx'
-import {
-  ROUTINE_LOG_STATUS_LABELS,
-  EXERCISE_CATEGORY_LABELS,
-  formatDuration,
-} from '../constants.ts'
+import { ROUTINE_LOG_STATUS_LABELS, EXERCISE_CATEGORY_LABELS } from '../constants.ts'
 import { formatDotDate } from '../utils/date.ts'
 import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
-
-// 측정 방식별 "최고" 수치 (없으면 null)
-function bestValue(metric: ExerciseMetric, sets: SetEntry[]): number | null {
-  if (sets.length === 0) return null
-  const v = (s: SetEntry) =>
-    metric === 'reps'
-      ? s.reps
-      : metric === 'time'
-        ? s.seconds ?? 0
-        : metric === 'distance_time'
-          ? s.distance ?? 0
-          : s.weight
-  return Math.max(...sets.map(v))
-}
-
-function formatBest(metric: ExerciseMetric, val: number): string {
-  switch (metric) {
-    case 'reps':
-      return `${val}회`
-    case 'time':
-      return formatDuration(val)
-    case 'distance_time':
-      return `${val}km`
-    default:
-      return `${val}kg`
-  }
-}
+import { generateRoutineLogShareImage } from '../utils/shareImage.ts'
+import { bestValue, formatBest } from '../utils/setStats.ts'
 
 export function RoutineLogDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -129,6 +101,30 @@ export function RoutineLogDetailPage() {
       memo: '',
     })
     showToast('루틴으로 저장되었습니다')
+  }
+
+  async function handleShare() {
+    if (!log) return
+    setMenuOpen(false)
+    try {
+      const blob = await generateRoutineLogShareImage(log, exercises)
+      const name = log.title || '운동 기록'
+      const file = new File([blob], `${name}.png`, { type: 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: name })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${name}.png`
+        a.click()
+        URL.revokeObjectURL(url)
+        showToast('이미지를 저장했습니다')
+      }
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return // 사용자가 공유 취소
+      showToast('공유할 수 없습니다')
+    }
   }
 
   async function handleDelete() {
@@ -285,6 +281,12 @@ export function RoutineLogDetailPage() {
               </button>
             </li>
           )}
+          <li>
+            <button type="button" className="action-menu__item" onClick={handleShare}>
+              <ShareIcon className="action-menu__icon" />
+              이미지로 공유
+            </button>
+          </li>
           <li>
             <button
               type="button"
