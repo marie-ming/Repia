@@ -1,4 +1,4 @@
-import type { Exercise, RoutineLog, ExerciseMetric, SetEntry } from '../db/types.ts'
+import type { Exercise, RoutineExercise, ExerciseMetric, SetEntry } from '../db/types.ts'
 import {
   EXERCISE_CATEGORY_LABELS,
   EQUIPMENT_LABELS,
@@ -288,11 +288,20 @@ export async function generateExerciseShareImage(ex: Exercise): Promise<Blob> {
   return toBlob(canvas)
 }
 
-// 운동 기록(RoutineLog)을 공유용 PNG로 (기록 상세 화면과 동일한 형태)
-export async function generateRoutineLogShareImage(
-  log: RoutineLog,
+// 운동 기록/수업을 공유용 PNG로 (기록 상세 화면과 동일한 형태)
+export interface WorkoutShareData {
+  title: string
+  date: string
+  time: string
+  items: RoutineExercise[]
+  memo: string
+}
+
+export async function generateWorkoutShareImage(
+  data: WorkoutShareData,
   exercises: Exercise[],
 ): Promise<Blob> {
+  const log = data
   await fontsReady()
 
   const byId = new Map(exercises.map((e) => [e.id, e]))
@@ -331,7 +340,7 @@ export async function generateRoutineLogShareImage(
   const SEP = '   ·   '
   m.font = UNITF
   const sepW = m.measureText(SEP).width
-  const setsLinesByEx = log.exercises.map((r): number[][] => {
+  const setsLinesByEx = log.items.map((r): number[][] => {
     if (!r.sets.length) return []
     const metric = byId.get(r.exerciseId)?.metric ?? 'weight_reps'
     const lines: number[][] = []
@@ -365,7 +374,7 @@ export async function generateRoutineLogShareImage(
   const tags = ((): string[] => {
     const out: string[] = []
     const seen = new Set<string>()
-    for (const r of log.exercises) {
+    for (const r of log.items) {
       const c = byId.get(r.exerciseId)?.categories[0]
       if (c && !seen.has(c)) {
         seen.add(c)
@@ -388,12 +397,12 @@ export async function generateRoutineLogShareImage(
   let height = PAD + TITLE_LH
   if (tags.length && !tagsInline) height += TAG_LH
   height += 14 + META_LH + 26
-  if (log.exercises.length === 0) {
+  if (log.items.length === 0) {
     height += META_LH
   } else {
-    log.exercises.forEach((_r, i) => {
+    log.items.forEach((_r, i) => {
       height += EXNAME_LH + NAME_GAP + setsLinesByEx[i].length * SETS_LH
-      if (i < log.exercises.length - 1) height += EX_GAP
+      if (i < log.items.length - 1) height += EX_GAP
     })
   }
   if (memoLines.length) height += 26 + memoLines.length * MEMO_LH
@@ -430,13 +439,13 @@ export async function generateRoutineLogShareImage(
   y += META_LH + 26
 
   // 운동별 (운동명 흰색 + 세트는 숫자만 컬러 강조)
-  if (log.exercises.length === 0) {
+  if (log.items.length === 0) {
     ctx.font = `400 ${META}px ${FONT}`
     ctx.fillStyle = '#a7a7b4'
     ctx.fillText('기록된 운동이 없습니다.', PAD, y)
     y += META_LH
   } else {
-    log.exercises.forEach((r, i) => {
+    log.items.forEach((r, i) => {
       const ex = byId.get(r.exerciseId)
       const metric = ex?.metric ?? 'weight_reps'
 
@@ -474,7 +483,7 @@ export async function generateRoutineLogShareImage(
         ctx.textBaseline = 'top'
         y += SETS_LH
       }
-      if (i < log.exercises.length - 1) y += EX_GAP
+      if (i < log.items.length - 1) y += EX_GAP
     })
   }
 

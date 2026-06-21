@@ -100,15 +100,29 @@ describe('SessionDetailPage', () => {
     expect(screen.getByTestId('loc')).toHaveTextContent(`/exercises/${ex.id}`)
   })
 
-  it('수정 버튼 → /sessions/:id/edit', async () => {
+  it('케밥 → 수정 → /sessions/:id/edit', async () => {
     const s = await sessionsRepo.create({
       memberId: 'm1',
       memberNameSnapshot: 'x',
       date: '2026-06-10',
     })
     renderPage(s.id)
-    await userEvent.click(await screen.findByRole('button', { name: '수정' }))
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    await userEvent.click(screen.getByRole('button', { name: '수정' }))
     expect(screen.getByTestId('loc')).toHaveTextContent(`/sessions/${s.id}/edit`)
+  })
+
+  it('케밥에 "이미지로 공유" 노출', async () => {
+    const ex = await exercisesRepo.create({ name: '벤치' })
+    const s = await sessionsRepo.create({
+      memberId: 'm1',
+      memberNameSnapshot: 'x',
+      date: '2026-06-10',
+      routine: [{ exerciseId: ex.id, sets: [{ weight: 60, reps: 10 }] }],
+    })
+    renderPage(s.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    expect(screen.getByRole('button', { name: '이미지로 공유' })).toBeInTheDocument()
   })
 
   it('회원 이름 클릭 시 /members/:memberId로 이동', async () => {

@@ -19,7 +19,7 @@ import {
 import { ROUTINE_LOG_STATUS_LABELS, EXERCISE_CATEGORY_LABELS } from '../constants.ts'
 import { formatDotDate } from '../utils/date.ts'
 import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
-import { generateRoutineLogShareImage } from '../utils/shareImage.ts'
+import { generateWorkoutShareImage } from '../utils/shareImage.ts'
 import { bestValue, formatBest } from '../utils/setStats.ts'
 
 export function RoutineLogDetailPage() {
@@ -107,8 +107,11 @@ export function RoutineLogDetailPage() {
     if (!log) return
     setMenuOpen(false)
     try {
-      const blob = await generateRoutineLogShareImage(log, exercises)
       const name = log.title || '운동 기록'
+      const blob = await generateWorkoutShareImage(
+        { title: name, date: log.date, time: log.time, items: log.exercises, memo: log.memo },
+        exercises,
+      )
       const file = new File([blob], `${name}.png`, { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: name })

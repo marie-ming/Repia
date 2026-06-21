@@ -3,17 +3,22 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import type { Session, Exercise } from '../db/types.ts'
-import { ChevronLeftIcon } from '../components/icons.tsx'
+import { ChevronLeftIcon, MoreIcon, PencilIcon, ShareIcon } from '../components/icons.tsx'
+import { BottomSheet } from '../components/BottomSheet.tsx'
+import { useToast } from '../components/Toast.tsx'
 import { SESSION_STATUS_LABELS } from '../constants.ts'
 import { formatDotDate } from '../utils/date.ts'
 import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
+import { generateWorkoutShareImage } from '../utils/shareImage.ts'
 
 export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const showToast = useToast()
   const [session, setSession] = useState<Session | null>(null)
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [loading, setLoading] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -26,6 +31,33 @@ export function SessionDetailPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  async function handleShare() {
+    if (!session) return
+    setMenuOpen(false)
+    try {
+      const name = session.title || session.memberNameSnapshot || '수업'
+      const blob = await generateWorkoutShareImage(
+        { title: name, date: session.date, time: session.time, items: session.routine, memo: session.memo },
+        exercises,
+      )
+      const file = new File([blob], `${name}.png`, { type: 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: name })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${name}.png`
+        a.click()
+        URL.revokeObjectURL(url)
+        showToast('이미지를 저장했습니다')
+      }
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return
+      showToast('공유할 수 없습니다')
+    }
+  }
 
   if (loading) {
     return <div className="detail"><p className="page__placeholder">불러오는 중...</p></div>
@@ -53,8 +85,13 @@ export function SessionDetailPage() {
         <button type="button" className="detail__back" onClick={() => navigate(-1)} aria-label="뒤로">
           <ChevronLeftIcon />
         </button>
-        <button type="button" className="detail__edit" onClick={() => navigate(`/sessions/${session.id}/edit`)}>
-          수정
+        <button
+          type="button"
+          className="detail__menu"
+          onClick={() => setMenuOpen(true)}
+          aria-label="더보기"
+        >
+          <MoreIcon />
         </button>
       </header>
 
@@ -95,6 +132,30 @@ export function SessionDetailPage() {
           </>
         )}
       </div>
+
+      <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} title={session.memberNameSnapshot}>
+        <ul className="action-menu">
+          <li>
+            <button
+              type="button"
+              className="action-menu__item"
+              onClick={() => {
+                setMenuOpen(false)
+                navigate(`/sessions/${session.id}/edit`)
+              }}
+            >
+              <PencilIcon className="action-menu__icon" />
+              수정
+            </button>
+          </li>
+          <li>
+            <button type="button" className="action-menu__item" onClick={handleShare}>
+              <ShareIcon className="action-menu__icon" />
+              이미지로 공유
+            </button>
+          </li>
+        </ul>
+      </BottomSheet>
     </div>
   )
 }
