@@ -45,6 +45,13 @@ export function RoutineEditor({
   function removeExercise(ri: number) {
     onChange(value.filter((_, i) => i !== ri))
   }
+  function moveExercise(ri: number, dir: -1 | 1) {
+    const target = ri + dir
+    if (target < 0 || target >= value.length) return
+    const next = [...value]
+    ;[next[ri], next[target]] = [next[target], next[ri]]
+    onChange(next)
+  }
   function addSet(ri: number) {
     onChange(
       value.map((r, i) => {
@@ -72,14 +79,34 @@ export function RoutineEditor({
         <div className="routine-ex" key={ri}>
           <div className="routine-ex__head">
             <span className="routine-ex__name">{exerciseName(r.exerciseId)}</span>
-            <button
-              type="button"
-              className="routine-ex__remove"
-              onClick={() => removeExercise(ri)}
-              aria-label="운동 제거"
-            >
-              ✕
-            </button>
+            <div className="routine-ex__actions">
+              <button
+                type="button"
+                className="routine-ex__move"
+                onClick={() => moveExercise(ri, -1)}
+                disabled={ri === 0}
+                aria-label="위로 이동"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                className="routine-ex__move"
+                onClick={() => moveExercise(ri, 1)}
+                disabled={ri === value.length - 1}
+                aria-label="아래로 이동"
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                className="routine-ex__remove"
+                onClick={() => removeExercise(ri)}
+                aria-label="운동 제거"
+              >
+                ✕
+              </button>
+            </div>
           </div>
           {r.sets.map((set, si) => (
             <SetRow
