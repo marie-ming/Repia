@@ -49,7 +49,7 @@ describe('RoutineLogDetailPage', () => {
     expect(screen.getByText('컨디션 좋음')).toBeInTheDocument()
   })
 
-  it('케밥 메뉴: 수정/이대로 기록 추가/루틴으로 저장/삭제', async () => {
+  it('케밥 메뉴: 수정/이대로 기록 추가/루틴으로 저장/이미지로 공유/삭제', async () => {
     const l = await seedLog()
     renderPage(l.id)
     await userEvent.click(await screen.findByLabelText('더보기'))
@@ -57,6 +57,7 @@ describe('RoutineLogDetailPage', () => {
     expect(within(sheet).getByText('수정')).toBeInTheDocument()
     expect(within(sheet).getByText('이대로 기록 추가')).toBeInTheDocument()
     expect(within(sheet).getByText('루틴으로 저장')).toBeInTheDocument()
+    expect(within(sheet).getByText('이미지로 공유')).toBeInTheDocument()
     expect(within(sheet).getByText('삭제')).toBeInTheDocument()
   })
 

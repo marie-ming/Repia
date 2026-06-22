@@ -1585,6 +1585,23 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
     font-size: 0.95rem;
   }
 
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+  }
+
+  &__move {
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0.25rem 0.4rem;
+
+    &:disabled {
+      opacity: 0.3;
+    }
+  }
+
   &__remove {
     color: var(--color-text-secondary);
     font-size: 0.85rem;

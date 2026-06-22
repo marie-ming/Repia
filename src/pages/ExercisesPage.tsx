@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import type { Exercise, ExerciseCategory, Equipment } from '../db/types.ts'
 import { PlusIcon, SearchIcon } from '../components/icons.tsx'
@@ -15,6 +15,10 @@ type EquipmentFilter = Equipment | 'all'
 
 export function ExercisesPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const createdId = (location.state as { createdId?: string } | null)?.createdId
+  const listRef = useRef<HTMLUListElement>(null)
+  const didScroll = useRef(false)
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -30,6 +34,16 @@ export function ExercisesPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  // 새로 만든 운동으로 자동 스크롤 (목록에서 생성 후 복귀 시)
+  useEffect(() => {
+    if (didScroll.current || !createdId || loading) return
+    const el = listRef.current?.querySelector(`[data-ex-id="${createdId}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      didScroll.current = true
+    }
+  }, [createdId, loading, exercises])
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -118,9 +132,9 @@ export function ExercisesPage() {
           </p>
         </div>
       ) : (
-        <ul className="exercise-list">
+        <ul className="exercise-list" ref={listRef}>
           {visible.map((ex) => (
-            <li key={ex.id}>
+            <li key={ex.id} data-ex-id={ex.id}>
               <button
                 type="button"
                 className="exercise-card"
