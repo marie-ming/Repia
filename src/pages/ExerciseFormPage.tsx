@@ -131,9 +131,9 @@ export function ExerciseFormPage() {
         showToast('운동이 수정되었습니다')
         navigate(-1)
       } else {
-        await exercisesRepo.create(data)
+        const ex = await exercisesRepo.create(data)
         showToast('운동이 추가되었습니다')
-        navigate('/exercises', { replace: true })
+        navigate('/exercises', { replace: true, state: { createdId: ex.id } })
       }
     } catch (err) {
       showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
