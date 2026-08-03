@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
@@ -7,6 +7,7 @@ import { useMode } from '../components/ModeContext.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { BottomSheet } from '../components/BottomSheet.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
+import { PhotoLightbox } from '../components/PhotoLightbox.tsx'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -32,6 +33,8 @@ interface RecentItem {
 }
 
 const RECENT_LIMIT = 3
+const LONG_PRESS_MS = 450
+const LONG_PRESS_MOVE_TOLERANCE = 10
 
 export function ExerciseDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -49,6 +52,9 @@ export function ExerciseDetailPage() {
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
   const [fullH, setFullH] = useState(0) // 사진 풀높이(4:3)
   const [heroH, setHeroH] = useState<number | null>(null) // 현재 사진 높이(null=풀)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const pressTimer = useRef<number | null>(null)
+  const pressStart = useRef<{ x: number; y: number } | null>(null)
 
   // 사진 풀높이 = 뷰포트 폭 기준 4:3 (.exdetail은 전체폭). 리사이즈 대응
   useLayoutEffect(() => {
@@ -95,6 +101,30 @@ export function ExerciseDetailPage() {
     const el = e.currentTarget
     const idx = Math.round(el.scrollLeft / el.clientWidth)
     if (idx !== activePhoto) setActivePhoto(idx)
+    clearPhotoPress()
+  }
+
+  function clearPhotoPress() {
+    if (pressTimer.current !== null) {
+      window.clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+    pressStart.current = null
+  }
+
+  function handlePhotoPointerDown(e: React.PointerEvent<HTMLImageElement>, index: number) {
+    pressStart.current = { x: e.clientX, y: e.clientY }
+    pressTimer.current = window.setTimeout(() => {
+      setLightboxIndex(index)
+      pressTimer.current = null
+    }, LONG_PRESS_MS)
+  }
+
+  function handlePhotoPointerMove(e: React.PointerEvent<HTMLImageElement>) {
+    if (!pressStart.current) return
+    const dx = e.clientX - pressStart.current.x
+    const dy = e.clientY - pressStart.current.y
+    if (Math.hypot(dx, dy) > LONG_PRESS_MOVE_TOLERANCE) clearPhotoPress()
   }
 
   async function handleDelete() {
@@ -179,7 +209,16 @@ export function ExerciseDetailPage() {
               <div className="carousel" onScroll={onCarouselScroll}>
                 {exercise.photos.map((photo, i) => (
                   <div className="carousel__item" key={i}>
-                    <img src={photo} alt={`${exercise.name} 사진 ${i + 1}`} />
+                    <img
+                      src={photo}
+                      alt={`${exercise.name} 사진 ${i + 1}`}
+                      onPointerDown={(e) => handlePhotoPointerDown(e, i)}
+                      onPointerMove={handlePhotoPointerMove}
+                      onPointerUp={clearPhotoPress}
+                      onPointerLeave={clearPhotoPress}
+                      onPointerCancel={clearPhotoPress}
+                      onContextMenu={(e) => e.preventDefault()}
+                    />
                   </div>
                 ))}
               </div>
@@ -353,6 +392,8 @@ export function ExerciseDetailPage() {
         onConfirm={() => setBlockedMessage(null)}
         onCancel={() => setBlockedMessage(null)}
       />
+
+      <PhotoLightbox photos={exercise.photos} index={lightboxIndex} onClose={() => setLightboxIndex(null)} />
     </div>
   )
 }
