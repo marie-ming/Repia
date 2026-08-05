@@ -68,6 +68,9 @@ export interface SetEntry {
 export interface RoutineExercise {
   exerciseId: string
   sets: SetEntry[]
+  // 슈퍼세트: 연속된 같은 groupId끼리 한 묶음(b+c를 한 세트로 번갈아 수행).
+  // 없으면 단독 운동. 평면 리스트를 그대로 읽는 곳(운동별 기록·삭제 가드 등)은 무시해도 된다.
+  groupId?: string
 }
 
 export type SessionStatus = 'reserved' | 'completed' | 'cancelled'

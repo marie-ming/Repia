@@ -1,7 +1,9 @@
+import { Fragment } from 'react'
 import type { ReactNode } from 'react'
 import type { RoutineExercise, Exercise, ExerciseMetric } from '../db/types.ts'
 import { ChevronRightIcon } from './icons.tsx'
 import { renderSetValue } from '../utils/setValue.tsx'
+import { toBlocks, isSuperset, roundCount } from '../utils/routineGroups.ts'
 
 interface RoutineReadonlyProps {
   items: RoutineExercise[]
@@ -19,35 +21,52 @@ export function RoutineReadonly({
   renderMeta,
 }: RoutineReadonlyProps) {
   const byId = new Map(exercises.map((e) => [e.id, e]))
+
+  function renderExercise(r: RoutineExercise, ri: number) {
+    const ex = byId.get(r.exerciseId)
+    const metric: ExerciseMetric = ex?.metric ?? 'weight_reps'
+    return (
+      <li key={ri} className="routine-readonly__ex">
+        <div className="routine-readonly__head">
+          <div className="routine-readonly__headmain">
+            <h3 className="routine-readonly__name">{ex?.name ?? '(삭제된 운동)'}</h3>
+            {renderMeta?.(r, metric)}
+          </div>
+          <button
+            type="button"
+            className="routine-readonly__link"
+            onClick={() => onExerciseClick(r.exerciseId)}
+            aria-label="운동 상세 보기"
+          >
+            <ChevronRightIcon className="routine-readonly__chevron" />
+          </button>
+        </div>
+        <ul className="routine-readonly__sets">
+          {r.sets.map((s, si) => (
+            <li key={si} className="routine-readonly__set">
+              <span className="routine-readonly__set-no">{si + 1}</span>
+              <span className="routine-readonly__set-val">{renderSetValue(metric, s)}</span>
+            </li>
+          ))}
+        </ul>
+      </li>
+    )
+  }
+
   return (
     <ul className="routine-readonly">
-      {items.map((r, ri) => {
-        const ex = byId.get(r.exerciseId)
-        const metric: ExerciseMetric = ex?.metric ?? 'weight_reps'
+      {toBlocks(items).map((block, bi) => {
+        const rows = block.indices.map((ri) => renderExercise(items[ri], ri))
+        if (!isSuperset(block)) return <Fragment key={`block-${bi}`}>{rows}</Fragment>
         return (
-          <li key={ri} className="routine-readonly__ex">
-            <div className="routine-readonly__head">
-              <div className="routine-readonly__headmain">
-                <h3 className="routine-readonly__name">{ex?.name ?? '(삭제된 운동)'}</h3>
-                {renderMeta?.(r, metric)}
-              </div>
-              <button
-                type="button"
-                className="routine-readonly__link"
-                onClick={() => onExerciseClick(r.exerciseId)}
-                aria-label="운동 상세 보기"
-              >
-                <ChevronRightIcon className="routine-readonly__chevron" />
-              </button>
+          <li className="routine-readonly__group" key={block.groupId}>
+            <div className="routine-readonly__grouphead">
+              <span className="routine-readonly__grouplabel">슈퍼세트</span>
+              <span className="routine-readonly__grouprounds">
+                {roundCount(items, block.indices)}라운드
+              </span>
             </div>
-            <ul className="routine-readonly__sets">
-              {r.sets.map((s, si) => (
-                <li key={si} className="routine-readonly__set">
-                  <span className="routine-readonly__set-no">{si + 1}</span>
-                  <span className="routine-readonly__set-val">{renderSetValue(metric, s)}</span>
-                </li>
-              ))}
-            </ul>
+            <ul className="routine-readonly__groupitems">{rows}</ul>
           </li>
         )
       })}

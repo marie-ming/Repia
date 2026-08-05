@@ -94,10 +94,8 @@ export function RoutineLogDetailPage() {
     setMenuOpen(false)
     await routineTemplatesRepo.create({
       title: log.title || '새 루틴',
-      exercises: log.exercises.map((r) => ({
-        exerciseId: r.exerciseId,
-        sets: r.sets.map((s) => ({ ...s })),
-      })),
+      // ...r로 복사해 슈퍼세트 묶음(groupId)까지 루틴에 남긴다
+      exercises: log.exercises.map((r) => ({ ...r, sets: r.sets.map((s) => ({ ...s })) })),
       memo: '',
     })
     showToast('루틴으로 저장되었습니다')
