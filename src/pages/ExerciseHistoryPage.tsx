@@ -4,7 +4,8 @@ import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import type { Exercise, SetEntry } from '../db/types.ts'
 import { ChevronLeftIcon } from '../components/icons.tsx'
-import { formatSetShort, bestSetLabel } from '../constants.ts'
+import { formatSetShort } from '../constants.ts'
+import { bestSetLabel } from '../utils/setStats.ts'
 import { formatShortDate } from '../utils/date.ts'
 
 interface HistoryItem {

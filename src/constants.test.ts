@@ -9,7 +9,6 @@ import {
   SESSION_STATUS_OPTIONS,
   gripLabel,
   formatDuration,
-  bestSetLabel,
 } from './constants.ts'
 
 describe('회원 상태', () => {
@@ -102,70 +101,5 @@ describe('formatDuration', () => {
     expect(formatDuration(45)).toBe('0:45')
     expect(formatDuration(90)).toBe('1:30')
     expect(formatDuration(605)).toBe('10:05')
-  })
-})
-
-describe('bestSetLabel', () => {
-  it('빈 배열이면 null', () => {
-    expect(bestSetLabel('weight_reps', [])).toBeNull()
-  })
-  it('weight_reps 최고 중량', () => {
-    expect(
-      bestSetLabel('weight_reps', [
-        { weight: 80, reps: 5 },
-        { weight: 120, reps: 3 },
-      ]),
-    ).toBe('최고 120kg')
-  })
-  it('reps 최고 횟수', () => {
-    expect(bestSetLabel('reps', [{ weight: 0, reps: 12 }, { weight: 0, reps: 20 }])).toBe('최고 20회')
-  })
-  it('time 최장 시간', () => {
-    expect(bestSetLabel('time', [{ weight: 0, reps: 0, seconds: 45 }, { weight: 0, reps: 0, seconds: 90 }])).toBe(
-      '최장 1:30',
-    )
-  })
-  it('distance_time 최장 거리', () => {
-    expect(
-      bestSetLabel('distance_time', [{ weight: 0, reps: 0, distance: 3, seconds: 1200 }]),
-    ).toBe('최장 3km')
-  })
-
-  describe('어시스트(보조 무게)', () => {
-    it('보조가 가장 적은 값을 기록으로', () => {
-      expect(
-        bestSetLabel(
-          'weight_reps',
-          [
-            { weight: 40, reps: 8 },
-            { weight: 30, reps: 6 },
-          ],
-          true,
-        ),
-      ).toBe('보조 30kg')
-    })
-
-    it('비워둔 세트(0)는 미입력으로 보고 제외', () => {
-      expect(
-        bestSetLabel(
-          'weight_reps',
-          [
-            { weight: 30, reps: 8 },
-            { weight: 0, reps: 0 },
-          ],
-          true,
-        ),
-      ).toBe('보조 30kg')
-    })
-
-    it('전부 비어 있으면 null', () => {
-      expect(bestSetLabel('weight_reps', [{ weight: 0, reps: 0 }], true)).toBeNull()
-    })
-
-    it('무게 × 횟수가 아니면 어시스트를 무시', () => {
-      expect(
-        bestSetLabel('reps', [{ weight: 0, reps: 12 }, { weight: 0, reps: 20 }], true),
-      ).toBe('최고 20회')
-    })
   })
 })

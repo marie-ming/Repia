@@ -1003,10 +1003,14 @@ button {
     font-weight: 600;
   }
 
+  // 길어지면 배지와 "지난" 사이에서만 줄이 바뀌게 한다
+  // (거리+시간처럼 한 기록이 길어져도 값 중간에서 쪼개지지 않도록)
   &__progress {
     display: inline-flex;
     align-items: baseline;
-    gap: 0.4rem;
+    flex-wrap: wrap;
+    min-width: 0;
+    gap: 0.3rem 0.4rem;
     font-size: 0.78rem;
     color: var(--color-text-secondary);
   }
@@ -1017,10 +1021,12 @@ button {
     background: rgba(233, 69, 96, 0.15);
     color: var(--color-primary);
     font-weight: 600;
+    white-space: nowrap;
   }
 
   &__delta {
     font-weight: 600;
+    white-space: nowrap;
 
     &--up {
       color: var(--color-primary);
