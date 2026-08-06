@@ -23,6 +23,7 @@ interface FormData {
   equipment: Equipment | null
   grip: string
   metric: ExerciseMetric
+  assisted: boolean
   description: string
 }
 
@@ -34,6 +35,7 @@ function emptyForm(): FormData {
     equipment: null,
     grip: '',
     metric: 'weight_reps',
+    assisted: false,
     description: '',
   }
 }
@@ -46,6 +48,7 @@ function fromExercise(ex: Exercise): FormData {
     equipment: ex.equipment,
     grip: ex.grip,
     metric: ex.metric,
+    assisted: !!ex.assisted,
     description: ex.description,
   }
 }
@@ -254,10 +257,29 @@ export function ExerciseFormPage() {
               <Select
                 value={form.metric}
                 options={EXERCISE_METRIC_OPTIONS}
-                onChange={(v) => setForm((f) => ({ ...f, metric: v }))}
+                // 무게 × 횟수가 아니면 보조 무게는 의미가 없으므로 함께 해제
+                onChange={(v) =>
+                  setForm((f) => ({ ...f, metric: v, assisted: v === 'weight_reps' && f.assisted }))
+                }
               />
             )}
           </div>
+
+          {form.metric === 'weight_reps' && (
+            <div className="field">
+              <label className="field__check">
+                <input
+                  type="checkbox"
+                  checked={form.assisted}
+                  onChange={(e) => setForm((f) => ({ ...f, assisted: e.target.checked }))}
+                />
+                <span>보조 무게</span>
+              </label>
+              <p className="field__check-hint">
+                적을수록 잘한 기록으로 계산합니다 (어시스트 머신·밴드 등)
+              </p>
+            </div>
+          )}
 
           <label className="field">
             <span className="field__label">그립</span>

@@ -105,8 +105,17 @@ export function formatSetShort(metric: ExerciseMetric, s: SetEntry): string {
 }
 
 // 여러 세트 중 측정 방식별 "최고 기록" 한 줄 (없으면 null)
-export function bestSetLabel(metric: ExerciseMetric, sets: SetEntry[]): string | null {
+export function bestSetLabel(
+  metric: ExerciseMetric,
+  sets: SetEntry[],
+  assisted?: boolean,
+): string | null {
   if (sets.length === 0) return null
+  // 어시스트는 보조가 적을수록 잘한 것 (0은 미입력으로 제외)
+  if (assisted && metric === 'weight_reps') {
+    const weights = sets.map((s) => s.weight).filter((w) => w > 0)
+    return weights.length ? `보조 ${Math.min(...weights)}kg` : null
+  }
   switch (metric) {
     case 'reps':
       return `최고 ${Math.max(...sets.map((s) => s.reps))}회`

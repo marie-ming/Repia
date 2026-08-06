@@ -44,7 +44,7 @@ export function ExerciseHistoryPage() {
   const best = useMemo(() => {
     if (!exercise) return null
     const allSets = items.flatMap((i) => i.sets)
-    return bestSetLabel(exercise.metric, allSets)
+    return bestSetLabel(exercise.metric, allSets, exercise.assisted)
   }, [exercise, items])
 
   if (loading) {

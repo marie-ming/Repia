@@ -20,7 +20,7 @@ import { ROUTINE_LOG_STATUS_LABELS, EXERCISE_CATEGORY_LABELS } from '../constant
 import { formatDotDate } from '../utils/date.ts'
 import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
 import { generateWorkoutShareImage } from '../utils/shareImage.ts'
-import { bestValue, formatBest } from '../utils/setStats.ts'
+import { bestValue, formatBest, isImproved } from '../utils/setStats.ts'
 
 export function RoutineLogDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -84,7 +84,7 @@ export function RoutineLogDetailPage() {
         )
         .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))[0]
       const prevSets = prev?.exercises.find((e) => e.exerciseId === r.exerciseId)?.sets ?? []
-      map.set(r.exerciseId, bestValue(metric, prevSets))
+      map.set(r.exerciseId, bestValue(metric, prevSets, exMap.get(r.exerciseId)?.assisted))
     }
     return map
   }, [log, allLogs, exMap])
@@ -209,21 +209,27 @@ export function RoutineLogDetailPage() {
             exercises={exercises}
             onExerciseClick={(exId) => navigate(`/exercises/${exId}`)}
             renderMeta={(r, metric) => {
-              const cur = bestValue(metric, r.sets)
+              const assisted = exMap.get(r.exerciseId)?.assisted
+              const cur = bestValue(metric, r.sets, assisted)
               if (cur === null) return null
               const prev = prevBest.get(r.exerciseId) ?? null
+              // 어시스트는 보조가 줄어야 향상 — 배지 문구도 "최고" 대신 "보조"
+              const up = prev !== null && isImproved(metric, cur, prev, assisted)
               return (
                 <span className="routine-readonly__progress">
-                  <span className="routine-readonly__best">최고 {formatBest(metric, cur)}</span>
+                  <span className="routine-readonly__best">
+                    {assisted && metric === 'weight_reps' ? '보조' : '최고'}{' '}
+                    {formatBest(metric, cur)}
+                  </span>
                   {prev !== null && cur !== prev && (
                     <span
                       className={
-                        cur > prev
+                        up
                           ? 'routine-readonly__delta routine-readonly__delta--up'
                           : 'routine-readonly__delta routine-readonly__delta--down'
                       }
                     >
-                      {cur > prev ? '▲' : '▼'} 지난 {formatBest(metric, prev)}
+                      {up ? '▲' : '▼'} 지난 {formatBest(metric, prev)}
                     </span>
                   )}
                 </span>

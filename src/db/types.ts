@@ -52,6 +52,9 @@ export interface Exercise {
   equipment: Equipment | null
   grip: string // free text (e.g. 오버핸드)
   metric: ExerciseMetric // 세트 입력/표시 방식
+  // 어시스트 머신처럼 무게가 "보조"라 적을수록 잘한 것인 운동(weight_reps에서만 의미).
+  // 켜지면 최고 기록을 최대가 아닌 최소로 잡고 향상 방향(▲▼)도 뒤집는다.
+  assisted?: boolean
   photos: string[] // Base64 data URLs; photos[0] is the representative photo
   description: string
   createdAt: string

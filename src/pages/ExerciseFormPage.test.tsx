@@ -129,3 +129,38 @@ describe('ExerciseFormPage — 수정', () => {
     expect(await screen.findByText('운동을 찾을 수 없습니다')).toBeInTheDocument()
   })
 })
+
+describe('ExerciseFormPage — 어시스트 머신(보조 무게)', () => {
+  const checkbox = () => screen.getByLabelText('보조 무게')
+
+  it('체크해서 저장하면 assisted로 남는다', async () => {
+    renderForm('/exercises/new')
+    await userEvent.type(screen.getByPlaceholderText('운동 입력'), '어시스트 풀업')
+    await userEvent.click(checkbox())
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+
+    await waitFor(async () => {
+      const list = await exercisesRepo.findAll()
+      expect(list.find((e) => e.name === '어시스트 풀업')?.assisted).toBe(true)
+    })
+  })
+
+  it('기본은 꺼져 있다', () => {
+    renderForm('/exercises/new')
+    expect(checkbox()).not.toBeChecked()
+  })
+
+  it('저장된 값이 수정 화면에 반영된다', async () => {
+    const ex = await exercisesRepo.create({ name: '어시스트 딥스', assisted: true })
+    renderForm(`/exercises/${ex.id}/edit`)
+    await screen.findByDisplayValue('어시스트 딥스')
+    expect(checkbox()).toBeChecked()
+  })
+
+  it('무게 × 횟수가 아니면 노출되지 않는다', async () => {
+    const ex = await exercisesRepo.create({ name: '플랭크', metric: 'time' })
+    renderForm(`/exercises/${ex.id}/edit`)
+    await screen.findByDisplayValue('플랭크')
+    expect(screen.queryByLabelText('보조 무게')).not.toBeInTheDocument()
+  })
+})

@@ -1628,6 +1628,31 @@ button {
     color: var(--color-text-secondary);
   }
 
+  // 켜고 끄는 값 하나 (설정의 .settings-toggle과 같은 형태 — chip은 여럿 중 고르는 용도).
+  // 항목 하나짜리 보조 설정이므로 위의 필드 라벨(0.85rem)보다 도드라지지 않게 둔다.
+  &__check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text);
+    font-size: 0.9rem;
+
+    input[type='checkbox'] {
+      width: 1rem;
+      height: 1rem;
+      accent-color: var(--color-primary);
+      flex-shrink: 0;
+    }
+  }
+
+  // 설명은 체크박스가 아니라 라벨 글자에 맞춰 들여쓴다(체크박스 1rem + gap 0.5rem)
+  &__check-hint {
+    margin-top: 0.25rem;
+    padding-left: 1.5rem;
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+  }
+
   &__locked {
     display: flex;
     align-items: baseline;
