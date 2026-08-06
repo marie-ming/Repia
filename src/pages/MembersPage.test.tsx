@@ -100,6 +100,6 @@ describe('MembersPage', () => {
     await waitFor(() => {
       expect(screen.getByText('신규회원')).toBeInTheDocument()
     })
-    expect(screen.getByRole('status')).toHaveTextContent('회원이 추가되었습니다')
+    expect(await screen.findByRole('status')).toHaveTextContent('회원이 추가되었습니다')
   })
 })

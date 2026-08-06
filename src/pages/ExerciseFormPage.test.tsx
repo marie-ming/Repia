@@ -48,7 +48,7 @@ describe('ExerciseFormPage — 신규', () => {
     const all = await exercisesRepo.findAll()
     expect(all).toHaveLength(1)
     expect(all[0].name).toBe('신규 운동')
-    expect(screen.getByRole('status')).toHaveTextContent('운동이 추가되었습니다')
+    expect(await screen.findByRole('status')).toHaveTextContent('운동이 추가되었습니다')
   })
 
   it('카테고리 최대 3개까지 선택, 4번째는 disabled', async () => {

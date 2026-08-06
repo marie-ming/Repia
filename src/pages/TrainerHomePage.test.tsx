@@ -87,7 +87,8 @@ describe('TrainerHomePage', () => {
     renderPage()
     await screen.findByText('예정된 수업이 없습니다.')
     await userEvent.click(screen.getByLabelText('수업 추가'))
-    expect(screen.getByRole('status')).toHaveTextContent('회원을 먼저 추가해주세요')
+    // 회원 조회(IndexedDB)를 기다린 뒤 토스트가 뜨므로 findBy로 기다린다
+    expect(await screen.findByRole('status')).toHaveTextContent('회원을 먼저 추가해주세요')
     expect(screen.queryByTestId('loc')).toBeNull()
   })
 

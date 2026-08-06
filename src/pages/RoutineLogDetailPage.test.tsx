@@ -88,7 +88,7 @@ describe('RoutineLogDetailPage', () => {
       expect(tpls[0].title).toBe('하체 데이')
       expect(tpls[0].exercises).toHaveLength(1)
     })
-    expect(screen.getByRole('status')).toHaveTextContent('루틴으로 저장되었습니다')
+    expect(await screen.findByRole('status')).toHaveTextContent('루틴으로 저장되었습니다')
   })
 
   it('삭제 → 확인 → 삭제 후 홈', async () => {
