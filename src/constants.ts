@@ -83,11 +83,13 @@ export const EXERCISE_METRIC_LABELS = Object.fromEntries(
   EXERCISE_METRIC_OPTIONS.map((o) => [o.value, o.label]),
 ) as Record<ExerciseMetric, string>
 
-// 초 → "m:ss"
+// 초 → "m:ss" (1시간 이상은 "h:mm:ss").
+// 분으로만 적으면 9시간짜리 세션이 "540:15"가 되어 읽기 어렵다.
 export function formatDuration(sec: number): string {
-  const m = Math.floor(sec / 60)
-  const s = sec % 60
-  return `${m}:${String(s).padStart(2, '0')}`
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor(sec / 60) % 60
+  const s = String(sec % 60).padStart(2, '0')
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`
 }
 
 // 세트 축약 표시 (같은 운동 칩처럼 단위 생략해도 되는 곳)

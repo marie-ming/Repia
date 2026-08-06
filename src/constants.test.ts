@@ -96,10 +96,18 @@ describe('gripLabel', () => {
 })
 
 describe('formatDuration', () => {
-  it('초를 m:ss로', () => {
+  it('1시간 미만은 m:ss', () => {
     expect(formatDuration(0)).toBe('0:00')
     expect(formatDuration(45)).toBe('0:45')
     expect(formatDuration(90)).toBe('1:30')
     expect(formatDuration(605)).toBe('10:05')
+    expect(formatDuration(3599)).toBe('59:59')
+  })
+
+  it('1시간 이상은 h:mm:ss (분만 쓰면 "540:15"처럼 읽기 어려움)', () => {
+    expect(formatDuration(3600)).toBe('1:00:00')
+    expect(formatDuration(6480)).toBe('1:48:00')
+    expect(formatDuration(15330)).toBe('4:15:30')
+    expect(formatDuration(32415)).toBe('9:00:15')
   })
 })
