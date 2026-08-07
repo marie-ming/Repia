@@ -7,7 +7,7 @@ import { MemberFormSheet } from '../components/MemberFormSheet.tsx'
 import type { MemberFormData } from '../components/MemberFormSheet.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { PlusIcon, SearchIcon } from '../components/icons.tsx'
-import { useFilterParams } from '../utils/useFilterParams.ts'
+import { useFilterParams, useUrlBackedText } from '../utils/useFilterParams.ts'
 
 interface MemberRow {
   member: Member
@@ -23,7 +23,7 @@ export function MembersPage() {
   // 필터는 URL 쿼리에 둔다 — 상세로 갔다 뒤로 와도 유지되도록
   const filters = useFilterParams()
   const showEnded = filters.get<'0' | '1'>('ended', '0', ['0', '1']) === '1'
-  const query = filters.get('q', '')
+  const [query, setQuery] = useUrlBackedText('q')
   const showToast = useToast()
 
   const load = useCallback(async () => {
@@ -99,7 +99,7 @@ export function MembersPage() {
                 className="search__input"
                 type="search"
                 value={query}
-                onChange={(e) => filters.set('q', e.target.value, '')}
+                onChange={(e) => setQuery(e.target.value)}
                 placeholder="이름 검색"
               />
             </div>

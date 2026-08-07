@@ -9,7 +9,7 @@ import {
   EQUIPMENT_OPTIONS,
   EQUIPMENT_LABELS,
 } from '../constants.ts'
-import { useFilterParams } from '../utils/useFilterParams.ts'
+import { useFilterParams, useUrlBackedText } from '../utils/useFilterParams.ts'
 
 type CategoryFilter = ExerciseCategory | 'all'
 type EquipmentFilter = Equipment | 'all'
@@ -27,7 +27,7 @@ export function ExercisesPage() {
   const [loading, setLoading] = useState(true)
   // 필터는 URL 쿼리에 둔다 — 상세로 갔다 뒤로 와도 유지되도록
   const filters = useFilterParams()
-  const query = filters.get('q', '')
+  const [query, setQuery] = useUrlBackedText('q')
   const category = filters.get<CategoryFilter>('cat', 'all', CATEGORY_VALUES)
   const equipment = filters.get<EquipmentFilter>('eq', 'all', EQUIPMENT_VALUES)
 
@@ -77,7 +77,7 @@ export function ExercisesPage() {
                   className="search__input"
                   type="search"
                   value={query}
-                  onChange={(e) => filters.set('q', e.target.value, '')}
+                  onChange={(e) => setQuery(e.target.value)}
                   placeholder="운동 이름 검색"
                 />
               </div>

@@ -31,6 +31,26 @@ export async function addExerciseWithPhotos(page: Page, name: string, files: str
   await expect(page.getByText(name)).toBeVisible()
 }
 
+// 카테고리·장비까지 지정해 운동 등록 (목록 필터 확인용)
+export async function addExerciseDetailed(
+  page: Page,
+  name: string,
+  opts: { category?: string; equipment?: string } = {},
+) {
+  await page.getByRole('link', { name: '운동' }).click()
+  await page.getByLabel('운동 추가').click()
+  await page.getByPlaceholder('운동 입력').fill(name)
+  if (opts.category) {
+    await page.locator('.chips--wrap').getByRole('button', { name: opts.category, exact: true }).click()
+  }
+  if (opts.equipment) {
+    await page.locator('.field', { hasText: '장비' }).locator('.select__control').click()
+    await page.getByRole('option', { name: opts.equipment, exact: true }).click()
+  }
+  await page.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByText(name)).toBeVisible()
+}
+
 // 보조 무게(어시스트) 운동 등록
 export async function addAssistedExercise(page: Page, name: string) {
   await page.getByRole('link', { name: '운동' }).click()
