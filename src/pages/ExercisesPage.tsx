@@ -9,9 +9,13 @@ import {
   EQUIPMENT_OPTIONS,
   EQUIPMENT_LABELS,
 } from '../constants.ts'
+import { useFilterParams } from '../utils/useFilterParams.ts'
 
 type CategoryFilter = ExerciseCategory | 'all'
 type EquipmentFilter = Equipment | 'all'
+
+const CATEGORY_VALUES: CategoryFilter[] = ['all', ...EXERCISE_CATEGORY_OPTIONS.map((o) => o.value)]
+const EQUIPMENT_VALUES: EquipmentFilter[] = ['all', ...EQUIPMENT_OPTIONS.map((o) => o.value)]
 
 export function ExercisesPage() {
   const navigate = useNavigate()
@@ -21,9 +25,11 @@ export function ExercisesPage() {
   const didScroll = useRef(false)
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<CategoryFilter>('all')
-  const [equipment, setEquipment] = useState<EquipmentFilter>('all')
+  // 필터는 URL 쿼리에 둔다 — 상세로 갔다 뒤로 와도 유지되도록
+  const filters = useFilterParams()
+  const query = filters.get('q', '')
+  const category = filters.get<CategoryFilter>('cat', 'all', CATEGORY_VALUES)
+  const equipment = filters.get<EquipmentFilter>('eq', 'all', EQUIPMENT_VALUES)
 
   const load = useCallback(async () => {
     const all = await exercisesRepo.findAll()
@@ -71,7 +77,7 @@ export function ExercisesPage() {
                   className="search__input"
                   type="search"
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => filters.set('q', e.target.value, '')}
                   placeholder="운동 이름 검색"
                 />
               </div>
@@ -80,7 +86,7 @@ export function ExercisesPage() {
               <button
                 type="button"
                 className={category === 'all' ? 'chip chip--active' : 'chip'}
-                onClick={() => setCategory('all')}
+                onClick={() => filters.set('cat', 'all', 'all')}
               >
                 전체
               </button>
@@ -89,7 +95,7 @@ export function ExercisesPage() {
                   type="button"
                   key={opt.value}
                   className={category === opt.value ? 'chip chip--active' : 'chip'}
-                  onClick={() => setCategory(opt.value)}
+                  onClick={() => filters.set('cat', opt.value, 'all')}
                 >
                   {opt.label}
                 </button>
@@ -99,7 +105,7 @@ export function ExercisesPage() {
               <button
                 type="button"
                 className={equipment === 'all' ? 'chip chip--active' : 'chip'}
-                onClick={() => setEquipment('all')}
+                onClick={() => filters.set('eq', 'all', 'all')}
               >
                 전체
               </button>
@@ -108,7 +114,7 @@ export function ExercisesPage() {
                   type="button"
                   key={opt.value}
                   className={equipment === opt.value ? 'chip chip--active' : 'chip'}
-                  onClick={() => setEquipment(opt.value)}
+                  onClick={() => filters.set('eq', opt.value, 'all')}
                 >
                   {opt.label}
                 </button>

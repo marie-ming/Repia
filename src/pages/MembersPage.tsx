@@ -7,6 +7,7 @@ import { MemberFormSheet } from '../components/MemberFormSheet.tsx'
 import type { MemberFormData } from '../components/MemberFormSheet.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { PlusIcon, SearchIcon } from '../components/icons.tsx'
+import { useFilterParams } from '../utils/useFilterParams.ts'
 
 interface MemberRow {
   member: Member
@@ -19,8 +20,10 @@ export function MembersPage() {
   const [rows, setRows] = useState<MemberRow[]>([])
   const [loading, setLoading] = useState(true)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [showEnded, setShowEnded] = useState(false)
-  const [query, setQuery] = useState('')
+  // 필터는 URL 쿼리에 둔다 — 상세로 갔다 뒤로 와도 유지되도록
+  const filters = useFilterParams()
+  const showEnded = filters.get<'0' | '1'>('ended', '0', ['0', '1']) === '1'
+  const query = filters.get('q', '')
   const showToast = useToast()
 
   const load = useCallback(async () => {
@@ -96,7 +99,7 @@ export function MembersPage() {
                 className="search__input"
                 type="search"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => filters.set('q', e.target.value, '')}
                 placeholder="이름 검색"
               />
             </div>
@@ -104,7 +107,7 @@ export function MembersPage() {
               <button
                 type="button"
                 className={showEnded ? 'chip chip--active' : 'chip'}
-                onClick={() => setShowEnded((v) => !v)}
+                onClick={() => filters.set('ended', showEnded ? '0' : '1', '0')}
               >
                 수업종료
               </button>
