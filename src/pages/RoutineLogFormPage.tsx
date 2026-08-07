@@ -86,10 +86,8 @@ export function RoutineLogFormPage() {
           date: defaultDate,
           time: nowHHMM(),
           status: 'planned',
-          exercises: src.exercises.map((r) => ({
-            exerciseId: r.exerciseId,
-            sets: r.sets.map((s) => ({ ...s })),
-          })),
+          // ...r로 복사해 슈퍼세트 묶음(groupId)까지 그대로 가져온다
+          exercises: src.exercises.map((r) => ({ ...r, sets: r.sets.map((s) => ({ ...s })) })),
           memo: '',
           templateId: null,
         }
@@ -105,10 +103,7 @@ export function RoutineLogFormPage() {
           date: defaultDate,
           time: nowHHMM(),
           status: 'planned',
-          exercises: tpl.exercises.map((r) => ({
-            exerciseId: r.exerciseId,
-            sets: r.sets.map((s) => ({ ...s })),
-          })),
+          exercises: tpl.exercises.map((r) => ({ ...r, sets: r.sets.map((s) => ({ ...s })) })),
           memo: '',
           templateId: tpl.id,
         }

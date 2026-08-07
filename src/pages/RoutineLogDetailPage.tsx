@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
-import type { RoutineLog, Exercise, ExerciseCategory } from '../db/types.ts'
+import type { RoutineLog, Exercise, ExerciseCategory, SetEntry } from '../db/types.ts'
 import { BottomSheet } from '../components/BottomSheet.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
@@ -20,7 +20,7 @@ import { ROUTINE_LOG_STATUS_LABELS, EXERCISE_CATEGORY_LABELS } from '../constant
 import { formatDotDate } from '../utils/date.ts'
 import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
 import { generateWorkoutShareImage } from '../utils/shareImage.ts'
-import { bestValue, formatBest } from '../utils/setStats.ts'
+import { bestSet, formatBestSet, isImprovedSet, isSameRecord } from '../utils/setStats.ts'
 
 export function RoutineLogDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -69,7 +69,7 @@ export function RoutineLogDetailPage() {
 
   // C: 운동별 직전 완료 기록의 최고치 (이전 기록 대비용)
   const prevBest = useMemo(() => {
-    const map = new Map<string, number | null>()
+    const map = new Map<string, SetEntry | null>()
     if (!log) return map
     const cur = log.date + log.time
     for (const r of log.exercises) {
@@ -84,7 +84,7 @@ export function RoutineLogDetailPage() {
         )
         .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))[0]
       const prevSets = prev?.exercises.find((e) => e.exerciseId === r.exerciseId)?.sets ?? []
-      map.set(r.exerciseId, bestValue(metric, prevSets))
+      map.set(r.exerciseId, bestSet(metric, prevSets, exMap.get(r.exerciseId)?.assisted))
     }
     return map
   }, [log, allLogs, exMap])
@@ -94,10 +94,8 @@ export function RoutineLogDetailPage() {
     setMenuOpen(false)
     await routineTemplatesRepo.create({
       title: log.title || '새 루틴',
-      exercises: log.exercises.map((r) => ({
-        exerciseId: r.exerciseId,
-        sets: r.sets.map((s) => ({ ...s })),
-      })),
+      // ...r로 복사해 슈퍼세트 묶음(groupId)까지 루틴에 남긴다
+      exercises: log.exercises.map((r) => ({ ...r, sets: r.sets.map((s) => ({ ...s })) })),
       memo: '',
     })
     showToast('루틴으로 저장되었습니다')
@@ -211,21 +209,27 @@ export function RoutineLogDetailPage() {
             exercises={exercises}
             onExerciseClick={(exId) => navigate(`/exercises/${exId}`)}
             renderMeta={(r, metric) => {
-              const cur = bestValue(metric, r.sets)
+              const assisted = exMap.get(r.exerciseId)?.assisted
+              const cur = bestSet(metric, r.sets, assisted)
               if (cur === null) return null
               const prev = prevBest.get(r.exerciseId) ?? null
+              // 어시스트는 보조가 줄어야 향상 — 배지 문구도 "최고" 대신 "보조"
+              const up = prev !== null && isImprovedSet(metric, cur, prev, assisted)
               return (
                 <span className="routine-readonly__progress">
-                  <span className="routine-readonly__best">최고 {formatBest(metric, cur)}</span>
-                  {prev !== null && cur !== prev && (
+                  <span className="routine-readonly__best">
+                    {assisted && metric === 'weight_reps' ? '보조' : '최고'}{' '}
+                    {formatBestSet(metric, cur)}
+                  </span>
+                  {prev !== null && !isSameRecord(metric, cur, prev, assisted) && (
                     <span
                       className={
-                        cur > prev
+                        up
                           ? 'routine-readonly__delta routine-readonly__delta--up'
                           : 'routine-readonly__delta routine-readonly__delta--down'
                       }
                     >
-                      {cur > prev ? '▲' : '▼'} 지난 {formatBest(metric, prev)}
+                      {up ? '▲' : '▼'} 지난 {formatBestSet(metric, prev)}
                     </span>
                   )}
                 </span>

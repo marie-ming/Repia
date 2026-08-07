@@ -1,4 +1,5 @@
 import type { Exercise, RoutineExercise, ExerciseMetric, SetEntry } from '../db/types.ts'
+import { toBlocks, isSuperset, roundCount } from './routineGroups.ts'
 import {
   EXERCISE_CATEGORY_LABELS,
   EQUIPMENT_LABELS,
@@ -326,6 +327,19 @@ export async function generateWorkoutShareImage(
   const NAME_GAP = 4
   const EX_GAP = 22
 
+  // 슈퍼세트 묶음: 배지 줄 + 왼쪽 세로선 + 멤버 들여쓰기
+  const GROUP_LABEL = 21
+  const GROUP_HEAD_LH = GROUP_LABEL + 22
+  const GROUP_INDENT = 24
+  const GROUP_BAR_W = 3
+  const MEMBER_GAP = 14
+
+  const blocks = toBlocks(log.items)
+  const indentOf = log.items.map(() => 0)
+  for (const b of blocks) {
+    if (isSuperset(b)) for (const i of b.indices) indentOf[i] = GROUP_INDENT
+  }
+
   // 세트 한 칸 폭(숫자/단위 폰트 반영)
   const measureSet = (metric: ExerciseMetric, s: SetEntry) => {
     let w = 0
@@ -340,16 +354,17 @@ export async function generateWorkoutShareImage(
   const SEP = '   ·   '
   m.font = UNITF
   const sepW = m.measureText(SEP).width
-  const setsLinesByEx = log.items.map((r): number[][] => {
+  const setsLinesByEx = log.items.map((r, ri): number[][] => {
     if (!r.sets.length) return []
     const metric = byId.get(r.exerciseId)?.metric ?? 'weight_reps'
+    const availW = contentW - indentOf[ri]
     const lines: number[][] = []
     let cur: number[] = []
     let curW = 0
     r.sets.forEach((s, si) => {
       const w = measureSet(metric, s)
       const add = (cur.length ? sepW : 0) + w
-      if (cur.length && curW + add > contentW) {
+      if (cur.length && curW + add > availW) {
         lines.push(cur)
         cur = []
         curW = 0
@@ -400,9 +415,13 @@ export async function generateWorkoutShareImage(
   if (log.items.length === 0) {
     height += META_LH
   } else {
-    log.items.forEach((_r, i) => {
-      height += EXNAME_LH + NAME_GAP + setsLinesByEx[i].length * SETS_LH
-      if (i < log.items.length - 1) height += EX_GAP
+    blocks.forEach((b, bi) => {
+      if (isSuperset(b)) height += GROUP_HEAD_LH
+      b.indices.forEach((ri, pos) => {
+        height += EXNAME_LH + NAME_GAP + setsLinesByEx[ri].length * SETS_LH
+        if (pos < b.indices.length - 1) height += MEMBER_GAP
+      })
+      if (bi < blocks.length - 1) height += EX_GAP
     })
   }
   if (memoLines.length) height += 26 + memoLines.length * MEMO_LH
@@ -445,45 +464,71 @@ export async function generateWorkoutShareImage(
     ctx.fillText('기록된 운동이 없습니다.', PAD, y)
     y += META_LH
   } else {
-    log.items.forEach((r, i) => {
-      const ex = byId.get(r.exerciseId)
-      const metric = ex?.metric ?? 'weight_reps'
+    blocks.forEach((b, bi) => {
+      const superset = isSuperset(b)
+      const x0 = PAD + (superset ? GROUP_INDENT : 0)
+      const barTop = y
 
-      // 운동명 (흰색)
-      ctx.textBaseline = 'top'
-      ctx.font = `600 ${EXNAME}px ${FONT}`
-      ctx.fillStyle = TEXT
-      ctx.fillText(ex?.name ?? '(삭제된 운동)', PAD, y)
-      y += EXNAME_LH + NAME_GAP
+      // 묶음 머리: 「슈퍼세트」 배지 + 라운드 수
+      if (superset) {
+        const cy = y + GROUP_HEAD_LH / 2 - 4
+        const pw = drawPill(ctx, x0, cy, '슈퍼세트', GROUP_LABEL)
+        ctx.font = `400 ${GROUP_LABEL}px ${FONT}`
+        ctx.fillStyle = DIM
+        ctx.textBaseline = 'middle'
+        ctx.fillText(`${roundCount(log.items, b.indices)}라운드`, x0 + pw + 10, cy + 1)
+        ctx.textBaseline = 'top'
+        y += GROUP_HEAD_LH
+      }
 
-      // 세트: 숫자=브랜드 컬러, 단위/기호=회색
-      for (const line of setsLinesByEx[i]) {
-        const base = y + NUM
-        ctx.textBaseline = 'alphabetic'
-        let sx = PAD
-        line.forEach((si, k) => {
-          if (k > 0) {
-            ctx.font = UNITF
-            ctx.fillStyle = DIM
-            ctx.fillText(SEP, sx, base)
-            sx += ctx.measureText(SEP).width
-          }
-          for (const seg of setSegmentsColor(metric, r.sets[si])) {
-            if (seg.num) {
-              ctx.font = NUMF
-              ctx.fillStyle = ACCENT
-            } else {
+      b.indices.forEach((ri, pos) => {
+        const r = log.items[ri]
+        const ex = byId.get(r.exerciseId)
+        const metric = ex?.metric ?? 'weight_reps'
+
+        // 운동명 (흰색)
+        ctx.textBaseline = 'top'
+        ctx.font = `600 ${EXNAME}px ${FONT}`
+        ctx.fillStyle = TEXT
+        ctx.fillText(ex?.name ?? '(삭제된 운동)', x0, y)
+        y += EXNAME_LH + NAME_GAP
+
+        // 세트: 숫자=브랜드 컬러, 단위/기호=회색
+        for (const line of setsLinesByEx[ri]) {
+          const base = y + NUM
+          ctx.textBaseline = 'alphabetic'
+          let sx = x0
+          line.forEach((si, k) => {
+            if (k > 0) {
               ctx.font = UNITF
               ctx.fillStyle = DIM
+              ctx.fillText(SEP, sx, base)
+              sx += ctx.measureText(SEP).width
             }
-            ctx.fillText(seg.t, sx, base)
-            sx += ctx.measureText(seg.t).width
-          }
-        })
-        ctx.textBaseline = 'top'
-        y += SETS_LH
+            for (const seg of setSegmentsColor(metric, r.sets[si])) {
+              if (seg.num) {
+                ctx.font = NUMF
+                ctx.fillStyle = ACCENT
+              } else {
+                ctx.font = UNITF
+                ctx.fillStyle = DIM
+              }
+              ctx.fillText(seg.t, sx, base)
+              sx += ctx.measureText(seg.t).width
+            }
+          })
+          ctx.textBaseline = 'top'
+          y += SETS_LH
+        }
+        if (pos < b.indices.length - 1) y += MEMBER_GAP
+      })
+
+      // 묶음 범위를 왼쪽 세로선으로 표시
+      if (superset) {
+        ctx.fillStyle = 'rgba(233, 69, 96, 0.45)'
+        ctx.fillRect(PAD, barTop, GROUP_BAR_W, y - barTop)
       }
-      if (i < log.items.length - 1) y += EX_GAP
+      if (bi < blocks.length - 1) y += EX_GAP
     })
   }
 

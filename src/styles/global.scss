@@ -941,6 +941,47 @@ button {
     padding: 0.8rem;
   }
 
+  // 슈퍼세트 묶음: 컨테이너가 테두리를 담당하고 안쪽 카드는 구분선만
+  &__group {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.7rem;
+    padding: 0.8rem;
+  }
+
+  &__grouphead {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  &__grouplabel {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.35rem;
+    background: rgba(233, 69, 96, 0.15);
+    color: var(--color-primary);
+  }
+
+  &__grouprounds {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__groupitems {
+    list-style: none;
+
+    .routine-readonly__ex {
+      background: none;
+      border: none;
+      border-radius: 0;
+      padding: 0.6rem 0 0;
+    }
+  }
+
   &__head {
     display: flex;
     align-items: center;
@@ -962,10 +1003,14 @@ button {
     font-weight: 600;
   }
 
+  // 길어지면 배지와 "지난" 사이에서만 줄이 바뀌게 한다
+  // (거리+시간처럼 한 기록이 길어져도 값 중간에서 쪼개지지 않도록)
   &__progress {
     display: inline-flex;
     align-items: baseline;
-    gap: 0.4rem;
+    flex-wrap: wrap;
+    min-width: 0;
+    gap: 0.3rem 0.4rem;
     font-size: 0.78rem;
     color: var(--color-text-secondary);
   }
@@ -976,10 +1021,12 @@ button {
     background: rgba(233, 69, 96, 0.15);
     color: var(--color-primary);
     font-weight: 600;
+    white-space: nowrap;
   }
 
   &__delta {
     font-weight: 600;
+    white-space: nowrap;
 
     &--up {
       color: var(--color-primary);
@@ -1130,6 +1177,9 @@ button {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
   }
 
@@ -1161,6 +1211,78 @@ button {
     height: 0.45rem;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.5);
+
+    &--active {
+      background: #fff;
+    }
+  }
+}
+
+// 사진 꾹 눌러 원본 보기(팝업)
+.photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.9);
+
+  &__track {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__item {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    display: grid;
+    place-items: center;
+  }
+
+  &__img {
+    max-width: 92vw;
+    max-height: 92vh;
+    object-fit: contain;
+  }
+
+  &__close {
+    position: absolute;
+    top: max(1rem, env(safe-area-inset-top));
+    right: 1rem;
+    z-index: 1;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+  }
+
+  &__dots {
+    position: absolute;
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    pointer-events: none;
+  }
+
+  &__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
 
     &--active {
       background: #fff;
@@ -1507,8 +1629,28 @@ button {
     color-scheme: dark;
   }
 
-  &__hint {
-    font-size: 0.85rem;
+  // 켜고 끄는 값 하나 (설정의 .settings-toggle과 같은 형태 — chip은 여럿 중 고르는 용도).
+  // 항목 하나짜리 보조 설정이므로 위의 필드 라벨(0.85rem)보다 도드라지지 않게 둔다.
+  &__check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text);
+    font-size: 0.9rem;
+
+    input[type='checkbox'] {
+      width: 1rem;
+      height: 1rem;
+      accent-color: var(--color-primary);
+      flex-shrink: 0;
+    }
+  }
+
+  // 설명은 체크박스가 아니라 라벨 글자에 맞춰 들여쓴다(체크박스 1rem + gap 0.5rem)
+  &__check-hint {
+    margin-top: 0.25rem;
+    padding-left: 1.5rem;
+    font-size: 0.78rem;
     color: var(--color-text-secondary);
   }
 
@@ -1609,6 +1751,64 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
   }
 
   &__add-set {
+    margin-top: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--color-primary);
+  }
+
+  &__link {
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    padding: 0.2rem 0.35rem;
+
+    &:disabled {
+      opacity: 0.3;
+    }
+  }
+
+  // 슈퍼세트 묶음 안의 운동 카드는 묶음 컨테이너가 테두리를 담당
+  &--in-group {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0.4rem 0 0;
+  }
+}
+
+// 슈퍼세트: 두 개 이상 운동을 한 세트(라운드)로 묶어 수행
+.superset {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.7rem;
+  padding: 0.7rem;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--color-border);
+
+    .routine-ex__actions {
+      margin-left: auto;
+    }
+  }
+
+  &__label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.35rem;
+    background: rgba(233, 69, 96, 0.15);
+    color: var(--color-primary);
+  }
+
+  &__rounds {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__add-round {
     margin-top: 0.4rem;
     font-size: 0.82rem;
     color: var(--color-primary);

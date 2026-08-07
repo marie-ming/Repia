@@ -83,11 +83,13 @@ export const EXERCISE_METRIC_LABELS = Object.fromEntries(
   EXERCISE_METRIC_OPTIONS.map((o) => [o.value, o.label]),
 ) as Record<ExerciseMetric, string>
 
-// 초 → "m:ss"
+// 초 → "m:ss" (1시간 이상은 "h:mm:ss").
+// 분으로만 적으면 9시간짜리 세션이 "540:15"가 되어 읽기 어렵다.
 export function formatDuration(sec: number): string {
-  const m = Math.floor(sec / 60)
-  const s = sec % 60
-  return `${m}:${String(s).padStart(2, '0')}`
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor(sec / 60) % 60
+  const s = String(sec % 60).padStart(2, '0')
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`
 }
 
 // 세트 축약 표시 (같은 운동 칩처럼 단위 생략해도 되는 곳)
@@ -104,20 +106,8 @@ export function formatSetShort(metric: ExerciseMetric, s: SetEntry): string {
   }
 }
 
-// 여러 세트 중 측정 방식별 "최고 기록" 한 줄 (없으면 null)
-export function bestSetLabel(metric: ExerciseMetric, sets: SetEntry[]): string | null {
-  if (sets.length === 0) return null
-  switch (metric) {
-    case 'reps':
-      return `최고 ${Math.max(...sets.map((s) => s.reps))}회`
-    case 'time':
-      return `최장 ${formatDuration(Math.max(...sets.map((s) => s.seconds ?? 0)))}`
-    case 'distance_time':
-      return `최장 ${Math.max(...sets.map((s) => s.distance ?? 0))}km`
-    default:
-      return `최고 ${Math.max(...sets.map((s) => s.weight))}kg`
-  }
-}
+// bestSetLabel은 기록 비교 로직과 함께 두려고 utils/setStats.ts로 옮겼다
+// (여기 두면 setStats가 formatDuration을 가져오는 것과 맞물려 순환 참조가 된다)
 
 // Legacy grip codes → Korean labels (grip is now free text).
 const GRIP_LEGACY_LABELS: Record<string, string> = {

@@ -4,7 +4,8 @@ import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import type { Exercise, SetEntry } from '../db/types.ts'
 import { ChevronLeftIcon } from '../components/icons.tsx'
-import { formatSetShort, bestSetLabel } from '../constants.ts'
+import { formatSetShort } from '../constants.ts'
+import { bestSetLabel } from '../utils/setStats.ts'
 import { formatShortDate } from '../utils/date.ts'
 
 interface HistoryItem {
@@ -44,7 +45,7 @@ export function ExerciseHistoryPage() {
   const best = useMemo(() => {
     if (!exercise) return null
     const allSets = items.flatMap((i) => i.sets)
-    return bestSetLabel(exercise.metric, allSets)
+    return bestSetLabel(exercise.metric, allSets, exercise.assisted)
   }, [exercise, items])
 
   if (loading) {

@@ -78,6 +78,7 @@ export const exercisesRepo = {
       equipment: data.equipment ?? null,
       grip: data.grip ?? '',
       metric: data.metric ?? 'weight_reps',
+      assisted: data.assisted ?? false,
       photos: data.photos ?? [],
       description: data.description ?? '',
       createdAt: now,

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { ExerciseDetailPage } from './ExerciseDetailPage.tsx'
@@ -119,5 +119,78 @@ describe('ExerciseDetailPage', () => {
   it('없는 id: 안내 표시', async () => {
     renderPage('ex_none')
     expect(await screen.findByText('운동을 찾을 수 없습니다')).toBeInTheDocument()
+  })
+
+  describe('사진 꾹 눌러 원본 보기', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('꾹 누르면(450ms) 원본 사진 팝업 표시, 배경 클릭으로 닫힘', async () => {
+      const ex = await exercisesRepo.create({ name: '사진운동', photos: ['data:image/png;base64,ABC'] })
+      renderPage(ex.id)
+      const photo = await screen.findByAltText('사진운동 사진 1')
+
+      fireEvent.pointerDown(photo, { clientX: 10, clientY: 10 })
+      act(() => {
+        vi.advanceTimersByTime(450)
+      })
+
+      const dialog = await screen.findByRole('dialog')
+      expect(within(dialog).getByAltText('원본 사진')).toBeInTheDocument()
+
+      fireEvent.click(dialog)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('사진 여러 장: 두 번째 사진을 꾹 누르면 그 사진부터 열림(스와이프로 이동 가능한 캐러셀)', async () => {
+      const ex = await exercisesRepo.create({
+        name: '멀티사진',
+        photos: ['data:image/png;base64,FIRST', 'data:image/png;base64,SECOND'],
+      })
+      renderPage(ex.id)
+      const secondPhoto = await screen.findByAltText('멀티사진 사진 2')
+
+      fireEvent.pointerDown(secondPhoto, { clientX: 10, clientY: 10 })
+      act(() => {
+        vi.advanceTimersByTime(450)
+      })
+
+      const dialog = await screen.findByRole('dialog')
+      const lightboxImgs = within(dialog).getAllByAltText('원본 사진') as HTMLImageElement[]
+      expect(lightboxImgs).toHaveLength(2) // 팝업 안에서도 스와이프 가능하도록 전체 사진이 캐러셀로 렌더링됨
+      expect(lightboxImgs[1].src).toContain('SECOND')
+    })
+
+    it('짧게 탭하면(누른 후 바로 뗌) 팝업이 뜨지 않음', async () => {
+      const ex = await exercisesRepo.create({ name: '사진운동2', photos: ['data:image/png;base64,ABC'] })
+      renderPage(ex.id)
+      const photo = await screen.findByAltText('사진운동2 사진 1')
+
+      fireEvent.pointerDown(photo, { clientX: 10, clientY: 10 })
+      fireEvent.pointerUp(photo)
+      act(() => {
+        vi.advanceTimersByTime(450)
+      })
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('누른 채 크게 움직이면(스와이프) 팝업이 뜨지 않음', async () => {
+      const ex = await exercisesRepo.create({ name: '사진운동3', photos: ['data:image/png;base64,ABC'] })
+      renderPage(ex.id)
+      const photo = await screen.findByAltText('사진운동3 사진 1')
+
+      fireEvent.pointerDown(photo, { clientX: 10, clientY: 10 })
+      fireEvent.pointerMove(photo, { clientX: 80, clientY: 10 })
+      act(() => {
+        vi.advanceTimersByTime(450)
+      })
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
   })
 })

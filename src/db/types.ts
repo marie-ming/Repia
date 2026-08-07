@@ -52,6 +52,9 @@ export interface Exercise {
   equipment: Equipment | null
   grip: string // free text (e.g. 오버핸드)
   metric: ExerciseMetric // 세트 입력/표시 방식
+  // 어시스트 머신처럼 무게가 "보조"라 적을수록 잘한 것인 운동(weight_reps에서만 의미).
+  // 켜지면 최고 기록을 최대가 아닌 최소로 잡고 향상 방향(▲▼)도 뒤집는다.
+  assisted?: boolean
   photos: string[] // Base64 data URLs; photos[0] is the representative photo
   description: string
   createdAt: string
@@ -68,6 +71,9 @@ export interface SetEntry {
 export interface RoutineExercise {
   exerciseId: string
   sets: SetEntry[]
+  // 슈퍼세트: 연속된 같은 groupId끼리 한 묶음(b+c를 한 세트로 번갈아 수행).
+  // 없으면 단독 운동. 평면 리스트를 그대로 읽는 곳(운동별 기록·삭제 가드 등)은 무시해도 된다.
+  groupId?: string
 }
 
 export type SessionStatus = 'reserved' | 'completed' | 'cancelled'
