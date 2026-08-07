@@ -19,6 +19,7 @@ const EXERCISES = [
   { name: '레그 익스텐션', categories: ['lower'] as const, equipment: 'machine' as const, grip: '', metric: 'weight_reps' as const },
   { name: '플랭크', categories: ['core'] as const, equipment: 'bodyweight' as const, grip: '', metric: 'time' as const },
   { name: '런닝', categories: ['cardio'] as const, equipment: null, grip: '', metric: 'distance_time' as const },
+  { name: '어시스트 풀업', categories: ['back', 'biceps'] as const, equipment: 'machine' as const, grip: '오버핸드', metric: 'weight_reps' as const, assisted: true },
 ]
 
 // 운동 측정 방식별 무작위 세트 생성
@@ -66,6 +67,7 @@ export async function seedDemoData(): Promise<void> {
       equipment: e.equipment,
       grip: e.grip,
       metric: e.metric,
+      assisted: 'assisted' in e ? e.assisted : false,
     })
     exs.push(created)
   }
@@ -154,6 +156,61 @@ export async function seedDemoData(): Promise<void> {
       memo: '',
     })
   }
+
+  // 보조 무게: 어시스트가 40 → 25kg로 줄어드는 흐름(적을수록 향상이라 ▲로 표시된다)
+  const assistedEx = byName('어시스트 풀업')
+  for (let k = 6; k >= 1; k--) {
+    const assist = 25 + (k - 1) * 3
+    await routineLogsRepo.create({
+      title: '등 데이',
+      date: toISODate(addDays(today, -k * 4)),
+      time: '',
+      status: 'completed',
+      exercises: [
+        {
+          exerciseId: assistedEx.id,
+          sets: [
+            { weight: assist, reps: 8 },
+            { weight: assist, reps: 7 },
+            { weight: assist + 5, reps: 8 },
+          ],
+        },
+      ],
+      memo: '',
+    })
+  }
+
+  // 슈퍼세트: 이두/삼두를 한 라운드로 묶은 기록
+  const armGroup = 'grp_demo_arm'
+  await routineLogsRepo.create({
+    title: '팔 슈퍼세트',
+    date: toISODate(addDays(today, -3)),
+    time: '',
+    status: 'completed',
+    exercises: [
+      { exerciseId: byName('벤치프레스').id, sets: [{ weight: 60, reps: 10 }] },
+      {
+        exerciseId: byName('덤벨 컬').id,
+        sets: [
+          { weight: 12, reps: 12 },
+          { weight: 14, reps: 10 },
+          { weight: 14, reps: 8 },
+        ],
+        groupId: armGroup,
+      },
+      {
+        exerciseId: byName('트라이셉 푸시다운').id,
+        sets: [
+          { weight: 20, reps: 15 },
+          { weight: 25, reps: 12 },
+          { weight: 25, reps: 10 },
+        ],
+        groupId: armGroup,
+      },
+    ],
+    memo: '',
+  })
+
   const templates = [
     {
       title: '하체 루틴',
@@ -182,4 +239,21 @@ export async function seedDemoData(): Promise<void> {
       memo: '',
     })
   }
+
+  // 슈퍼세트가 들어간 루틴 (편집 화면에서 묶음 UI를 바로 볼 수 있게)
+  const supersetGroup = 'grp_demo_tpl'
+  await routineTemplatesRepo.create({
+    title: '팔 슈퍼세트 루틴',
+    categories: ['biceps', 'triceps'],
+    exercises: [
+      { exerciseId: byName('풀업').id, sets: randomSets('reps') },
+      { exerciseId: byName('덤벨 컬').id, sets: randomSets('weight_reps'), groupId: supersetGroup },
+      {
+        exerciseId: byName('트라이셉 푸시다운').id,
+        sets: randomSets('weight_reps'),
+        groupId: supersetGroup,
+      },
+    ],
+    memo: '이두·삼두를 번갈아 한 라운드로',
+  })
 }
