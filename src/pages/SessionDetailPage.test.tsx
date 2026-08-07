@@ -140,4 +140,77 @@ describe('SessionDetailPage', () => {
     renderPage('ses_none')
     expect(await screen.findByText('수업을 찾을 수 없습니다')).toBeInTheDocument()
   })
+
+  describe('회원 진척 (지난 수업 대비)', () => {
+    // 같은 회원의 직전 완료 수업과 비교해 운동명 옆에 배지를 보여준다
+    async function seedTwoSessions(
+      prevW: number,
+      curW: number,
+      opts: { assisted?: boolean; prevMemberId?: string } = {},
+    ) {
+      const ex = await exercisesRepo.create({
+        name: `벤치${Math.random()}`,
+        assisted: opts.assisted,
+      })
+      await sessionsRepo.create({
+        memberId: opts.prevMemberId ?? 'm1',
+        memberNameSnapshot: '홍길동',
+        date: '2026-06-01',
+        time: '10:00',
+        status: 'completed',
+        routine: [{ exerciseId: ex.id, sets: [{ weight: prevW, reps: 8 }] }],
+      })
+      const cur = await sessionsRepo.create({
+        memberId: 'm1',
+        memberNameSnapshot: '홍길동',
+        date: '2026-06-10',
+        time: '10:00',
+        status: 'completed',
+        routine: [{ exerciseId: ex.id, sets: [{ weight: curW, reps: 8 }] }],
+      })
+      return cur
+    }
+
+    it('무게가 늘면 "최고" 배지 + ▲', async () => {
+      const s = await seedTwoSessions(60, 80)
+      renderPage(s.id)
+      expect(await screen.findByText('최고 80kg')).toBeInTheDocument()
+      expect(screen.getByText(/▲ 지난 60kg/)).toBeInTheDocument()
+    })
+
+    it('무게가 줄면 ▼', async () => {
+      const s = await seedTwoSessions(80, 60)
+      renderPage(s.id)
+      await screen.findByText('최고 60kg')
+      expect(screen.getByText(/▼ 지난 80kg/)).toBeInTheDocument()
+    })
+
+    it('보조 무게 운동은 보조가 줄어야 ▲', async () => {
+      const s = await seedTwoSessions(40, 30, { assisted: true })
+      renderPage(s.id)
+      expect(await screen.findByText('보조 30kg')).toBeInTheDocument()
+      expect(screen.getByText(/▲ 지난 40kg/)).toBeInTheDocument()
+    })
+
+    it('다른 회원의 수업과는 비교하지 않는다', async () => {
+      const s = await seedTwoSessions(60, 80, { prevMemberId: 'm2' })
+      renderPage(s.id)
+      expect(await screen.findByText('최고 80kg')).toBeInTheDocument()
+      expect(screen.queryByText(/지난/)).not.toBeInTheDocument()
+    })
+
+    it('이전 수업이 없으면 배지만 나오고 증감은 없다', async () => {
+      const ex = await exercisesRepo.create({ name: '첫수업운동' })
+      const s = await sessionsRepo.create({
+        memberId: 'm1',
+        memberNameSnapshot: '홍길동',
+        date: '2026-06-10',
+        status: 'completed',
+        routine: [{ exerciseId: ex.id, sets: [{ weight: 50, reps: 10 }] }],
+      })
+      renderPage(s.id)
+      expect(await screen.findByText('최고 50kg')).toBeInTheDocument()
+      expect(screen.queryByText(/지난/)).not.toBeInTheDocument()
+    })
+  })
 })

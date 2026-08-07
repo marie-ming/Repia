@@ -20,7 +20,8 @@ import { ROUTINE_LOG_STATUS_LABELS, EXERCISE_CATEGORY_LABELS } from '../constant
 import { formatDotDate } from '../utils/date.ts'
 import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
 import { generateWorkoutShareImage } from '../utils/shareImage.ts'
-import { bestSet, formatBestSet, isImprovedSet, isSameRecord } from '../utils/setStats.ts'
+import { BestProgress } from '../components/BestProgress.tsx'
+import { prevBestByExercise } from '../utils/prevBest.ts'
 
 export function RoutineLogDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -69,24 +70,9 @@ export function RoutineLogDetailPage() {
 
   // C: 운동별 직전 완료 기록의 최고치 (이전 기록 대비용)
   const prevBest = useMemo(() => {
-    const map = new Map<string, SetEntry | null>()
-    if (!log) return map
-    const cur = log.date + log.time
-    for (const r of log.exercises) {
-      const metric = exMap.get(r.exerciseId)?.metric ?? 'weight_reps'
-      const prev = allLogs
-        .filter(
-          (l) =>
-            l.id !== log.id &&
-            l.status === 'completed' &&
-            l.date + l.time < cur &&
-            l.exercises.some((e) => e.exerciseId === r.exerciseId),
-        )
-        .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))[0]
-      const prevSets = prev?.exercises.find((e) => e.exerciseId === r.exerciseId)?.sets ?? []
-      map.set(r.exerciseId, bestSet(metric, prevSets, exMap.get(r.exerciseId)?.assisted))
-    }
-    return map
+    if (!log) return new Map<string, SetEntry | null>()
+    const toEntry = (l: RoutineLog) => ({ ...l, items: l.exercises })
+    return prevBestByExercise(toEntry(log), allLogs.map(toEntry), exMap)
   }, [log, allLogs, exMap])
 
   async function handleMakeTemplate() {
@@ -208,33 +194,14 @@ export function RoutineLogDetailPage() {
             items={log.exercises}
             exercises={exercises}
             onExerciseClick={(exId) => navigate(`/exercises/${exId}`)}
-            renderMeta={(r, metric) => {
-              const assisted = exMap.get(r.exerciseId)?.assisted
-              const cur = bestSet(metric, r.sets, assisted)
-              if (cur === null) return null
-              const prev = prevBest.get(r.exerciseId) ?? null
-              // 어시스트는 보조가 줄어야 향상 — 배지 문구도 "최고" 대신 "보조"
-              const up = prev !== null && isImprovedSet(metric, cur, prev, assisted)
-              return (
-                <span className="routine-readonly__progress">
-                  <span className="routine-readonly__best">
-                    {assisted && metric === 'weight_reps' ? '보조' : '최고'}{' '}
-                    {formatBestSet(metric, cur)}
-                  </span>
-                  {prev !== null && !isSameRecord(metric, cur, prev, assisted) && (
-                    <span
-                      className={
-                        up
-                          ? 'routine-readonly__delta routine-readonly__delta--up'
-                          : 'routine-readonly__delta routine-readonly__delta--down'
-                      }
-                    >
-                      {up ? '▲' : '▼'} 지난 {formatBestSet(metric, prev)}
-                    </span>
-                  )}
-                </span>
-              )
-            }}
+            renderMeta={(r, metric) => (
+              <BestProgress
+                metric={metric}
+                sets={r.sets}
+                prev={prevBest.get(r.exerciseId) ?? null}
+                assisted={exMap.get(r.exerciseId)?.assisted}
+              />
+            )}
           />
         )}
 
