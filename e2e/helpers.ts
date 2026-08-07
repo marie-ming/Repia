@@ -31,9 +31,38 @@ export async function addExerciseWithPhotos(page: Page, name: string, files: str
   await expect(page.getByText(name)).toBeVisible()
 }
 
+// 보조 무게(어시스트) 운동 등록
+export async function addAssistedExercise(page: Page, name: string) {
+  await page.getByRole('link', { name: '운동' }).click()
+  await page.getByLabel('운동 추가').click()
+  await page.getByPlaceholder('운동 입력').fill(name)
+  await page.getByLabel('보조 무게').check()
+  await page.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByText(name)).toBeVisible()
+}
+
 // 기록 폼에서 운동 picker로 운동 추가
 export async function pickExercise(page: Page, name: string) {
   await page.getByRole('button', { name: '+ 운동 추가' }).click()
   await page.locator('.exercise-card', { hasText: name }).click()
   await page.locator('.picker__confirm').click()
+}
+
+// 완료 상태 기록 하나 생성. inputs는 세트 입력칸 순서대로 채운다
+// (무게×횟수: [kg, 회] / 거리+시간: [km, 분, 초]).
+// 이전 기록 대비(▲▼)를 보려면 시간을 다르게 줘 순서를 만든다.
+export async function createCompletedLog(
+  page: Page,
+  opts: { title: string; time: string; exercise: string; inputs: string[] },
+) {
+  await page.getByRole('link', { name: '홈' }).click()
+  await page.getByLabel('운동 추가').click()
+  await page.getByPlaceholder(/제목 입력/).fill(opts.title)
+  await page.locator('input[type="time"]').fill(opts.time)
+  await page.getByRole('button', { name: '완료', exact: true }).click()
+  await pickExercise(page, opts.exercise)
+  const inputs = page.locator('.set-row__input')
+  for (const [i, v] of opts.inputs.entries()) await inputs.nth(i).fill(v)
+  await page.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByText(opts.title)).toBeVisible()
 }
