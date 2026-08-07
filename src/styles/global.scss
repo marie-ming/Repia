@@ -1629,11 +1629,6 @@ button {
     color-scheme: dark;
   }
 
-  &__hint {
-    font-size: 0.85rem;
-    color: var(--color-text-secondary);
-  }
-
   // 켜고 끄는 값 하나 (설정의 .settings-toggle과 같은 형태 — chip은 여럿 중 고르는 용도).
   // 항목 하나짜리 보조 설정이므로 위의 필드 라벨(0.85rem)보다 도드라지지 않게 둔다.
   &__check {
