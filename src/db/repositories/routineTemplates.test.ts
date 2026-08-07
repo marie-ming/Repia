@@ -4,15 +4,24 @@ import { getDB } from '../index.ts'
 import { STORES } from '../schema.ts'
 import type { RoutineTemplate } from '../types.ts'
 
-// updatedAt 정렬을 확인하려면 생성 순서만으로는 부족해(같은 ms) 값을 직접 지정한다
+// updatedAt 정렬 확인용. update()는 넘긴 updatedAt을 무시하고 항상 현재 시각을 찍으므로
+// (그게 의도된 동작) 정렬을 결정적으로 검증하려면 스토어에 직접 넣어야 한다.
 async function seedWithTimes() {
-  const a = await routineTemplatesRepo.create({ title: '가슴 루틴' })
-  const b = await routineTemplatesRepo.create({ title: '나중 루틴' })
-  const c = await routineTemplatesRepo.create({ title: '다리 루틴' })
-  await routineTemplatesRepo.update(a.id, { updatedAt: '2026-06-01T00:00:00.000Z' })
-  await routineTemplatesRepo.update(b.id, { updatedAt: '2026-06-20T00:00:00.000Z' })
-  await routineTemplatesRepo.update(c.id, { updatedAt: '2026-06-10T00:00:00.000Z' })
-  return { a, b, c }
+  const db = await getDB()
+  const put = async (id: string, title: string, updatedAt: string) => {
+    await db.put(STORES.ROUTINE_TEMPLATES, {
+      id,
+      title,
+      categories: [],
+      exercises: [],
+      memo: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt,
+    })
+  }
+  await put('rtt_a', '가슴 루틴', '2026-06-01T00:00:00.000Z')
+  await put('rtt_b', '나중 루틴', '2026-06-20T00:00:00.000Z')
+  await put('rtt_c', '다리 루틴', '2026-06-10T00:00:00.000Z')
 }
 
 describe('routineTemplatesRepo (fake-indexeddb)', () => {
@@ -51,6 +60,16 @@ describe('routineTemplatesRepo (fake-indexeddb)', () => {
     expect(updated.title).toBe('수정됨')
     expect(updated.memo).toBe('메모')
     expect(updated.createdAt).toBe(t.createdAt)
+  })
+
+  it('update: updatedAt은 넘겨도 무시되고 항상 현재 시각으로 갱신된다', async () => {
+    const t = await routineTemplatesRepo.create({ title: '루틴' })
+    const updated = await routineTemplatesRepo.update(t.id, {
+      title: '수정',
+      updatedAt: '2020-01-01T00:00:00.000Z',
+    })
+    expect(updated.updatedAt).not.toBe('2020-01-01T00:00:00.000Z')
+    expect(Date.parse(updated.updatedAt)).toBeGreaterThanOrEqual(Date.parse(t.createdAt))
   })
 
   it('update: 없는 id면 에러', async () => {
