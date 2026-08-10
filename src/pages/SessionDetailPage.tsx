@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
-import type { Session, Exercise } from '../db/types.ts'
+import type { Session, Exercise, SetEntry } from '../db/types.ts'
 import { ChevronLeftIcon, MoreIcon, PencilIcon, ShareIcon } from '../components/icons.tsx'
 import { BottomSheet } from '../components/BottomSheet.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { SESSION_STATUS_LABELS } from '../constants.ts'
 import { formatDotDate } from '../utils/date.ts'
 import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
+import { BestProgress } from '../components/BestProgress.tsx'
+import { prevBestByExercise } from '../utils/prevBest.ts'
 import { generateWorkoutShareImage } from '../utils/shareImage.ts'
 
 export function SessionDetailPage() {
@@ -17,6 +19,7 @@ export function SessionDetailPage() {
   const showToast = useToast()
   const [session, setSession] = useState<Session | null>(null)
   const [exercises, setExercises] = useState<Exercise[]>([])
+  const [memberSessions, setMemberSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -25,8 +28,19 @@ export function SessionDetailPage() {
     const [s, exs] = await Promise.all([sessionsRepo.findById(id), exercisesRepo.findAll()])
     setSession(s ?? null)
     setExercises(exs)
+    // 진척 비교는 같은 회원의 지난 수업하고만 한다
+    setMemberSessions(s ? await sessionsRepo.findByMember(s.memberId) : [])
     setLoading(false)
   }, [id])
+
+  const exMap = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
+
+  // 운동별 직전 완료 수업의 최고치 (같은 회원 기준)
+  const prevBest = useMemo(() => {
+    if (!session) return new Map<string, SetEntry | null>()
+    const toEntry = (s: Session) => ({ ...s, items: s.routine })
+    return prevBestByExercise(toEntry(session), memberSessions.map(toEntry), exMap)
+  }, [session, memberSessions, exMap])
 
   useEffect(() => {
     load()
@@ -122,6 +136,14 @@ export function SessionDetailPage() {
             items={session.routine}
             exercises={exercises}
             onExerciseClick={(exId) => navigate(`/exercises/${exId}`)}
+            renderMeta={(r, metric) => (
+              <BestProgress
+                metric={metric}
+                sets={r.sets}
+                prev={prevBest.get(r.exerciseId) ?? null}
+                assisted={exMap.get(r.exerciseId)?.assisted}
+              />
+            )}
           />
         )}
 

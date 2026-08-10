@@ -7,15 +7,20 @@ import type { RoutineTemplate, ExerciseCategory, Exercise } from '../db/types.ts
 import { PlusIcon } from '../components/icons.tsx'
 import { EXERCISE_CATEGORY_OPTIONS, EXERCISE_CATEGORY_LABELS } from '../constants.ts'
 import { formatDotDate } from '../utils/date.ts'
+import { useFilterParams } from '../utils/useFilterParams.ts'
 
 type CategoryFilter = ExerciseCategory | 'all'
+
+const CATEGORY_VALUES: CategoryFilter[] = ['all', ...EXERCISE_CATEGORY_OPTIONS.map((o) => o.value)]
 
 export function RoutinesPage() {
   const navigate = useNavigate()
   const [templates, setTemplates] = useState<RoutineTemplate[]>([])
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [lastByTemplate, setLastByTemplate] = useState<Map<string, string>>(new Map())
-  const [category, setCategory] = useState<CategoryFilter>('all')
+  // 필터는 URL 쿼리에 둔다 — 상세로 갔다 뒤로 와도 유지되도록
+  const filters = useFilterParams()
+  const category = filters.get<CategoryFilter>('cat', 'all', CATEGORY_VALUES)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -69,7 +74,7 @@ export function RoutinesPage() {
             <button
               type="button"
               className={category === 'all' ? 'chip chip--active' : 'chip'}
-              onClick={() => setCategory('all')}
+              onClick={() => filters.set('cat', 'all', 'all')}
             >
               전체
             </button>
@@ -78,7 +83,7 @@ export function RoutinesPage() {
                 type="button"
                 key={opt.value}
                 className={category === opt.value ? 'chip chip--active' : 'chip'}
-                onClick={() => setCategory(opt.value)}
+                onClick={() => filters.set('cat', opt.value, 'all')}
               >
                 {opt.label}
               </button>
