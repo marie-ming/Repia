@@ -78,13 +78,17 @@ export function RoutineLogDetailPage() {
   async function handleMakeTemplate() {
     if (!log) return
     setMenuOpen(false)
-    await routineTemplatesRepo.create({
-      title: log.title || '새 루틴',
-      // ...r로 복사해 슈퍼세트 묶음(groupId)까지 루틴에 남긴다
-      exercises: log.exercises.map((r) => ({ ...r, sets: r.sets.map((s) => ({ ...s })) })),
-      memo: '',
-    })
-    showToast('루틴으로 저장되었습니다')
+    try {
+      await routineTemplatesRepo.create({
+        title: log.title || '새 루틴',
+        // ...r로 복사해 슈퍼세트 묶음(groupId)까지 루틴에 남긴다
+        exercises: log.exercises.map((r) => ({ ...r, sets: r.sets.map((s) => ({ ...s })) })),
+        memo: '',
+      })
+      showToast('루틴으로 저장되었습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
+    }
   }
 
   async function handleShare() {
@@ -116,10 +120,15 @@ export function RoutineLogDetailPage() {
 
   async function handleDelete() {
     if (!log) return
-    await routineLogsRepo.delete(log.id)
-    setConfirmDel(false)
-    showToast('기록이 삭제되었습니다')
-    navigate('/', { replace: true })
+    try {
+      await routineLogsRepo.delete(log.id)
+      setConfirmDel(false)
+      showToast('기록이 삭제되었습니다')
+      navigate('/', { replace: true })
+    } catch (err) {
+      setConfirmDel(false)
+      showToast(err instanceof Error ? `삭제 실패: ${err.message}` : '삭제에 실패했습니다')
+    }
   }
 
   if (loading) {

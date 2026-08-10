@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ExercisePicker } from './ExercisePicker.tsx'
+import { ToastProvider } from './Toast.tsx'
 import type { Exercise } from '../db/types.ts'
 
 function makeEx(over: Partial<Exercise>): Exercise {
@@ -159,5 +160,31 @@ describe('ExercisePicker', () => {
     )
     expect(screen.getByRole('button', { name: '추가' })).toBeDisabled()
     expect((screen.getByPlaceholderText('운동 이름 검색') as HTMLInputElement).value).toBe('')
+  })
+})
+
+describe('ExercisePicker 인라인 생성 실패', () => {
+  // catch가 없으면 스피너만 꺼지고 아무 안내 없이 운동이 안 만들어진 채 끝난다
+  it('생성이 실패하면 실패 토스트를 띄운다', async () => {
+    const onCreateExercise = vi.fn().mockRejectedValue(new Error('저장 공간 부족'))
+    render(
+      <ToastProvider>
+        <ExercisePicker
+          open
+          exercises={EXERCISES}
+          excludeIds={[]}
+          onClose={() => {}}
+          onConfirm={() => {}}
+          onCreateExercise={onCreateExercise}
+        />
+      </ToastProvider>,
+    )
+    await userEvent.type(screen.getByPlaceholderText('운동 이름 검색'), '새로운운동')
+    // 만들기 UI는 링크를 눌러 펼친 뒤에 나온다
+    await userEvent.click(document.querySelector('.picker__create-link') as HTMLElement)
+    await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('저장 실패: 저장 공간 부족')
+    expect(onCreateExercise).toHaveBeenCalled()
   })
 })

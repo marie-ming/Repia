@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
@@ -40,6 +40,10 @@ async function seedLog() {
 }
 
 describe('RoutineLogDetailPage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('제목·메타·운동·메모 표시', async () => {
     const l = await seedLog()
     renderPage(l.id)
@@ -101,6 +105,29 @@ describe('RoutineLogDetailPage', () => {
     await waitFor(async () => {
       expect(await routineLogsRepo.findById(l.id)).toBeUndefined()
     })
+  })
+
+  it('루틴으로 저장 실패 시 성공 토스트 대신 실패를 알린다', async () => {
+    // 저장이 실패했는데 "저장되었습니다"가 뜨면 사용자는 저장된 줄 안다
+    vi.spyOn(routineTemplatesRepo, 'create').mockRejectedValueOnce(new Error('저장 공간 부족'))
+    const l = await seedLog()
+    renderPage(l.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    await userEvent.click(within(screen.getByRole('dialog')).getByText('루틴으로 저장'))
+    expect(await screen.findByRole('status')).toHaveTextContent('저장 실패: 저장 공간 부족')
+    expect(await routineTemplatesRepo.findAll()).toHaveLength(0)
+  })
+
+  it('기록 삭제 실패 시 성공 토스트 대신 실패를 알린다', async () => {
+    vi.spyOn(routineLogsRepo, 'delete').mockRejectedValueOnce(new Error('쓰기 거부'))
+    const l = await seedLog()
+    renderPage(l.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    await userEvent.click(within(screen.getByRole('dialog')).getByText('삭제'))
+    const confirm = await screen.findByRole('alertdialog')
+    await userEvent.click(within(confirm).getByRole('button', { name: '삭제' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('삭제 실패: 쓰기 거부')
+    expect(await routineLogsRepo.findById(l.id)).toBeDefined() // 실제로 남아 있다
   })
 
   it('없는 id: 안내', async () => {
