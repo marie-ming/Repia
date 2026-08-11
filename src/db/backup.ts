@@ -1,5 +1,6 @@
 import { getDB, withTransaction } from './index.ts'
 import { STORES } from './schema.ts'
+import { appConfigRepo } from './repositories/appConfig.ts'
 import type {
   AppConfigRecord,
   Member,
@@ -68,6 +69,9 @@ export async function exportBackup({ includesPhotos = true }: { includesPhotos?:
   a.download = `repia-backup-${new Date().toISOString().slice(0, 10)}.json`
   a.click()
   URL.revokeObjectURL(url)
+
+  // 백업 안내(오래됐는지) 판단에 쓴다
+  await appConfigRepo.setLastBackupAt(new Date().toISOString())
 }
 
 // Import (overwrite) from a backup file. Throws with a user-facing message on failure.

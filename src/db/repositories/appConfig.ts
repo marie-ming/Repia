@@ -22,6 +22,15 @@ export const appConfigRepo = {
     return this.set('mode', mode)
   },
 
+  // 마지막으로 백업 파일을 내려받은 시각 (ISO). 오래되면 설정에서 안내한다.
+  getLastBackupAt(): Promise<string | null> {
+    return this.get<string>('lastBackupAt')
+  },
+
+  setLastBackupAt(iso: string): Promise<void> {
+    return this.set('lastBackupAt', iso)
+  },
+
   async getAll() {
     const db = await getDB()
     return db.getAll(STORES.APP_CONFIG)

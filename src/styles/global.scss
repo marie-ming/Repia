@@ -2327,11 +2327,27 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
 
   &__label {
     font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  // 백업이 오래됐을 때 붙는 점. 문구(--warn)와 함께 쓰여 색으로만 알리지 않는다
+  &__dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--color-primary);
+    flex-shrink: 0;
   }
 
   &__desc {
     font-size: 0.8rem;
     color: var(--color-text-secondary);
+
+    &--warn {
+      color: var(--color-primary);
+    }
   }
 
   &__chevron {
