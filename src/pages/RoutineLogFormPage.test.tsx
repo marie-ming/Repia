@@ -7,6 +7,7 @@ import { ToastProvider } from '../components/Toast.tsx'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
+import { logDraftRepo } from '../db/repositories/logDraft.ts'
 
 function renderForm(path: string) {
   function PathProbe() {
@@ -111,6 +112,74 @@ describe('RoutineLogFormPage — 수정', () => {
     await waitFor(async () => {
       const fresh = await routineLogsRepo.findById(l.id)
       expect(fresh?.status).toBe('completed')
+    })
+  })
+})
+
+// 헬스장에서 세트를 채우다 앱이 내려가면 그대로 날아가던 문제.
+describe('RoutineLogFormPage 작성 중 기록 복구', () => {
+  const draftForm = {
+    title: '작성중이던 가슴',
+    date: '2026-08-10',
+    time: '09:00',
+    status: 'planned' as const,
+    exercises: [{ exerciseId: 'ex_1', sets: [{ weight: 60, reps: 10 }] }],
+    memo: '',
+    templateId: null,
+  }
+
+  it('초안이 있으면 이어쓸지 묻는다', async () => {
+    await logDraftRepo.save(draftForm)
+    renderForm('/logs/new')
+    expect(await screen.findByText('작성 중이던 기록이 있어요')).toBeInTheDocument()
+  })
+
+  it('이어쓰기를 누르면 내용이 복원된다', async () => {
+    await logDraftRepo.save(draftForm)
+    renderForm('/logs/new')
+    await screen.findByText('작성 중이던 기록이 있어요')
+    await userEvent.click(screen.getByRole('button', { name: '이어쓰기' }))
+    expect(await screen.findByDisplayValue('작성중이던 가슴')).toBeInTheDocument()
+  })
+
+  it('새로 시작을 누르면 빈 폼이 되고 초안도 지워진다', async () => {
+    await logDraftRepo.save(draftForm)
+    renderForm('/logs/new')
+    await screen.findByText('작성 중이던 기록이 있어요')
+    await userEvent.click(screen.getByRole('button', { name: '새로 시작' }))
+
+    expect(screen.queryByDisplayValue('작성중이던 가슴')).not.toBeInTheDocument()
+    await waitFor(async () => {
+      expect(await logDraftRepo.get()).toBeNull()
+    })
+  })
+
+  it('초안이 없으면 아무것도 묻지 않는다', async () => {
+    renderForm('/logs/new')
+    await screen.findByPlaceholderText(/제목 입력/)
+    expect(screen.queryByText('작성 중이던 기록이 있어요')).not.toBeInTheDocument()
+  })
+
+  it('수정 화면에서는 초안을 묻지 않는다 (이미 내용이 있음)', async () => {
+    await logDraftRepo.save(draftForm)
+    const l = await routineLogsRepo.create({ title: '기존 기록', date: '2026-06-10' })
+    renderForm(`/logs/${l.id}/edit`)
+    await screen.findByDisplayValue('기존 기록')
+    expect(screen.queryByText('작성 중이던 기록이 있어요')).not.toBeInTheDocument()
+  })
+
+  it('작성하면 초안이 저장되고, 저장 완료 후에는 지워진다', async () => {
+    await exercisesRepo.create({ name: '벤치프레스' })
+    renderForm('/logs/new')
+    await userEvent.type(await screen.findByPlaceholderText(/제목 입력/), '새 기록')
+
+    await waitFor(async () => {
+      expect((await logDraftRepo.get())?.form.title).toBe('새 기록')
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(async () => {
+      expect(await logDraftRepo.get()).toBeNull()
     })
   })
 })

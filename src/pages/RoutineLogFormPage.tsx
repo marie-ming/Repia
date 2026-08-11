@@ -16,7 +16,8 @@ import { useToast } from '../components/Toast.tsx'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
 import { ChevronLeftIcon } from '../components/icons.tsx'
 import { ROUTINE_LOG_STATUS_OPTIONS } from '../constants.ts'
-import { nowHHMM, todayISODate } from '../utils/date.ts'
+import { formatDotDate, nowHHMM, todayISODate } from '../utils/date.ts'
+import { logDraftRepo, type LogDraft } from '../db/repositories/logDraft.ts'
 
 interface FormData {
   title: string
@@ -61,6 +62,10 @@ export function RoutineLogFormPage() {
   const [history, setHistory] = useState<RoutineLog[]>([])
   const [log, setLog] = useState<RoutineLog | null>(null)
   const [confirmClose, setConfirmClose] = useState(false)
+  // 빈 폼에서 새로 쓰기 시작하는 경우에만 초안을 다룬다.
+  // 수정·복제·루틴으로 시작은 이미 채워진 내용이 있어 초안이 끼어들면 오히려 헷갈린다.
+  const draftEnabled = !isEdit && !fromId && !fromTemplateId
+  const [pendingDraft, setPendingDraft] = useState<LogDraft | null>(null)
 
   const load = useCallback(async () => {
     const [exs, allLogs] = await Promise.all([
@@ -110,9 +115,13 @@ export function RoutineLogFormPage() {
         setForm(initial)
         initRef.current = initial
       }
+    } else if (draftEnabled) {
+      // 작성 중이던 게 있으면 물어본다 (바로 덮어씌우지 않는다)
+      const draft = await logDraftRepo.get()
+      if (draft) setPendingDraft(draft)
     }
     setLoaded(true)
-  }, [id, isEdit, fromId, fromTemplateId, defaultDate])
+  }, [id, isEdit, fromId, fromTemplateId, defaultDate, draftEnabled])
 
   useEffect(() => {
     load()
@@ -120,6 +129,18 @@ export function RoutineLogFormPage() {
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
   const canSave = !!form.date && (!isEdit || isDirty)
+
+  // 작성 중인 내용을 계속 남겨둔다. 매 입력마다 쓰지 않도록 잠깐 모아서 저장.
+  // 복구 여부를 묻는 중(pendingDraft)에는 빈 폼으로 덮어쓰지 않도록 멈춘다.
+  useEffect(() => {
+    if (!draftEnabled || !loaded || pendingDraft) return
+    const t = setTimeout(() => {
+      logDraftRepo.save(form).catch(() => {
+        /* 초안 저장 실패는 사용자를 막을 일이 아니라 조용히 넘긴다 */
+      })
+    }, 500)
+    return () => clearTimeout(t)
+  }, [form, draftEnabled, loaded, pendingDraft])
 
   // 운동별 가장 최근 기록의 세트 구성 전체 (현재 편집 중인 기록·취소 제외)
   const lastSetsByExercise = useMemo(() => {
@@ -163,6 +184,8 @@ export function RoutineLogFormPage() {
         await routineLogsRepo.create(input)
         showToast('기록이 추가되었습니다')
       }
+      // 저장됐으니 초안은 더 필요 없다 (실패 시에는 남겨둔다)
+      if (draftEnabled) await logDraftRepo.clear()
       navigate(-1)
     } catch (err) {
       showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
@@ -295,6 +318,31 @@ export function RoutineLogFormPage() {
         danger
         onConfirm={() => { setConfirmClose(false); navigate(-1) }}
         onCancel={() => setConfirmClose(false)}
+      />
+
+      {/* 작성 중이던 기록 복구. 배경 클릭으로 닫히면 초안을 잃을 수 있어 dismissible=false */}
+      <ConfirmDialog
+        open={!!pendingDraft}
+        dismissible={false}
+        title="작성 중이던 기록이 있어요"
+        message={
+          pendingDraft
+            ? `${formatDotDate(pendingDraft.form.date)} · 운동 ${pendingDraft.form.exercises.length}개`
+            : undefined
+        }
+        confirmLabel="이어쓰기"
+        cancelLabel="새로 시작"
+        onConfirm={() => {
+          if (pendingDraft) {
+            setForm(pendingDraft.form)
+            initRef.current = pendingDraft.form
+          }
+          setPendingDraft(null)
+        }}
+        onCancel={() => {
+          setPendingDraft(null)
+          logDraftRepo.clear()
+        }}
       />
     </div>
   )
