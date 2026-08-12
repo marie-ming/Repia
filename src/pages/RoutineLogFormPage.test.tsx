@@ -183,3 +183,35 @@ describe('RoutineLogFormPage 작성 중 기록 복구', () => {
     })
   })
 })
+
+// 초안이 남는데 "닫으면 변경사항이 사라집니다"라고 경고하면 앱이 거짓말을 하는 셈이다.
+// 초안이 남는 경우와 안 남는 경우의 안내가 각각 사실이어야 한다.
+describe('RoutineLogFormPage 나가기 안내', () => {
+  it('새 기록: 경고 대신 임시 저장했다고 알리고 바로 나간다', async () => {
+    renderForm('/logs/new')
+    await userEvent.type(await screen.findByPlaceholderText(/제목 입력/), '작성중')
+    await userEvent.click(screen.getByLabelText('뒤로'))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('임시 저장했습니다')
+    expect(screen.queryByText('저장하지 않은 변경사항이 있습니다')).not.toBeInTheDocument()
+    // 실제로 남아 있어야 한다 (디바운스 전에 나가도)
+    expect((await logDraftRepo.get())?.form.title).toBe('작성중')
+  })
+
+  it('수정 화면: 초안을 남기지 않으므로 기존 경고를 그대로 띄운다', async () => {
+    const l = await routineLogsRepo.create({ title: '기존', date: '2026-06-10' })
+    renderForm(`/logs/${l.id}/edit`)
+    await screen.findByDisplayValue('기존')
+    await userEvent.type(screen.getByDisplayValue('기존'), '수정')
+    await userEvent.click(screen.getByLabelText('뒤로'))
+
+    expect(await screen.findByText('저장하지 않은 변경사항이 있습니다')).toBeInTheDocument()
+  })
+
+  it('변경이 없으면 아무것도 묻지 않고 나간다', async () => {
+    renderForm('/logs/new')
+    await screen.findByPlaceholderText(/제목 입력/)
+    await userEvent.click(screen.getByLabelText('뒤로'))
+    expect(screen.queryByText('저장하지 않은 변경사항이 있습니다')).not.toBeInTheDocument()
+  })
+})

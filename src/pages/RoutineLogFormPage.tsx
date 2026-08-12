@@ -192,9 +192,22 @@ export function RoutineLogFormPage() {
     }
   }
 
-  function handleBack() {
-    if (isDirty) setConfirmClose(true)
-    else navigate(-1)
+  async function handleBack() {
+    if (!isDirty) {
+      navigate(-1)
+      return
+    }
+    // 새 기록은 초안이 남으므로 "사라집니다" 경고가 거짓이 된다.
+    // 경고 대신 임시 저장됐다고 알리고 그냥 나간다(다음에 이어쓸지 물어본다).
+    if (draftEnabled) {
+      // 디바운스가 아직 안 돌았을 수 있으니 지금 확실히 저장하고 나간다
+      await logDraftRepo.save(form).catch(() => {})
+      showToast('작성 중인 내용을 임시 저장했습니다')
+      navigate(-1)
+      return
+    }
+    // 수정·복제·루틴으로 시작은 초안을 남기지 않으므로 경고가 맞다
+    setConfirmClose(true)
   }
 
   if (!loaded) {
