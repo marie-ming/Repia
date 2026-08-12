@@ -43,10 +43,15 @@ export function RoutineTemplateDetailPage() {
 
   async function handleDelete() {
     if (!template) return
-    await routineTemplatesRepo.delete(template.id)
-    setConfirmDel(false)
-    showToast('루틴이 삭제되었습니다')
-    navigate('/routines', { replace: true })
+    try {
+      await routineTemplatesRepo.delete(template.id)
+      setConfirmDel(false)
+      showToast('루틴이 삭제되었습니다')
+      navigate('/routines', { replace: true })
+    } catch (err) {
+      setConfirmDel(false)
+      showToast(err instanceof Error ? `삭제 실패: ${err.message}` : '삭제에 실패했습니다')
+    }
   }
 
   if (loading) {

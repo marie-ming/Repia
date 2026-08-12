@@ -7,6 +7,7 @@ import { ToastProvider } from '../components/Toast.tsx'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
+import { logDraftRepo } from '../db/repositories/logDraft.ts'
 
 function renderForm(path: string) {
   function PathProbe() {
@@ -112,5 +113,161 @@ describe('RoutineLogFormPage — 수정', () => {
       const fresh = await routineLogsRepo.findById(l.id)
       expect(fresh?.status).toBe('completed')
     })
+  })
+})
+
+// 헬스장에서 세트를 채우다 앱이 내려가면 그대로 날아가던 문제.
+describe('RoutineLogFormPage 작성 중 기록 복구', () => {
+  const draftForm = {
+    title: '작성중이던 가슴',
+    date: '2026-08-10',
+    time: '09:00',
+    status: 'planned' as const,
+    exercises: [{ exerciseId: 'ex_1', sets: [{ weight: 60, reps: 10 }] }],
+    memo: '',
+    templateId: null,
+  }
+
+  it('초안이 있으면 이어쓸지 묻는다', async () => {
+    await logDraftRepo.save(draftForm)
+    renderForm('/logs/new')
+    expect(await screen.findByText('작성 중이던 기록이 있어요')).toBeInTheDocument()
+  })
+
+  it('이어쓰기를 누르면 내용이 복원된다', async () => {
+    await logDraftRepo.save(draftForm)
+    renderForm('/logs/new')
+    await screen.findByText('작성 중이던 기록이 있어요')
+    await userEvent.click(screen.getByRole('button', { name: '이어쓰기' }))
+    expect(await screen.findByDisplayValue('작성중이던 가슴')).toBeInTheDocument()
+  })
+
+  it('새로 시작을 누르면 빈 폼이 되고 초안도 지워진다', async () => {
+    await logDraftRepo.save(draftForm)
+    renderForm('/logs/new')
+    await screen.findByText('작성 중이던 기록이 있어요')
+    await userEvent.click(screen.getByRole('button', { name: '새로 시작' }))
+
+    expect(screen.queryByDisplayValue('작성중이던 가슴')).not.toBeInTheDocument()
+    await waitFor(async () => {
+      expect(await logDraftRepo.get()).toBeNull()
+    })
+  })
+
+  it('초안이 없으면 아무것도 묻지 않는다', async () => {
+    renderForm('/logs/new')
+    await screen.findByPlaceholderText(/제목 입력/)
+    expect(screen.queryByText('작성 중이던 기록이 있어요')).not.toBeInTheDocument()
+  })
+
+  it('수정 화면에서는 초안을 묻지 않는다 (이미 내용이 있음)', async () => {
+    await logDraftRepo.save(draftForm)
+    const l = await routineLogsRepo.create({ title: '기존 기록', date: '2026-06-10' })
+    renderForm(`/logs/${l.id}/edit`)
+    await screen.findByDisplayValue('기존 기록')
+    expect(screen.queryByText('작성 중이던 기록이 있어요')).not.toBeInTheDocument()
+  })
+
+  it('작성하면 초안이 저장되고, 저장 완료 후에는 지워진다', async () => {
+    await exercisesRepo.create({ name: '벤치프레스' })
+    renderForm('/logs/new')
+    await userEvent.type(await screen.findByPlaceholderText(/제목 입력/), '새 기록')
+
+    await waitFor(async () => {
+      expect((await logDraftRepo.get())?.form.title).toBe('새 기록')
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(async () => {
+      expect(await logDraftRepo.get()).toBeNull()
+    })
+  })
+})
+
+// 초안이 남는데 "닫으면 변경사항이 사라집니다"라고 경고하면 앱이 거짓말을 하는 셈이다.
+// 초안이 남는 경우와 안 남는 경우의 안내가 각각 사실이어야 한다.
+describe('RoutineLogFormPage 나가기 안내', () => {
+  it('새 기록: 경고 대신 임시 저장했다고 알리고 바로 나간다', async () => {
+    renderForm('/logs/new')
+    await userEvent.type(await screen.findByPlaceholderText(/제목 입력/), '작성중')
+    await userEvent.click(screen.getByLabelText('뒤로'))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('임시 저장했습니다')
+    expect(screen.queryByText('저장하지 않은 변경사항이 있습니다')).not.toBeInTheDocument()
+    // 실제로 남아 있어야 한다 (디바운스 전에 나가도)
+    expect((await logDraftRepo.get())?.form.title).toBe('작성중')
+  })
+
+  it('수정 화면: 초안을 남기지 않으므로 기존 경고를 그대로 띄운다', async () => {
+    const l = await routineLogsRepo.create({ title: '기존', date: '2026-06-10' })
+    renderForm(`/logs/${l.id}/edit`)
+    await screen.findByDisplayValue('기존')
+    await userEvent.type(screen.getByDisplayValue('기존'), '수정')
+    await userEvent.click(screen.getByLabelText('뒤로'))
+
+    expect(await screen.findByText('저장하지 않은 변경사항이 있습니다')).toBeInTheDocument()
+  })
+
+  it('변경이 없으면 아무것도 묻지 않고 나간다', async () => {
+    renderForm('/logs/new')
+    await screen.findByPlaceholderText(/제목 입력/)
+    await userEvent.click(screen.getByLabelText('뒤로'))
+    expect(screen.queryByText('저장하지 않은 변경사항이 있습니다')).not.toBeInTheDocument()
+  })
+})
+
+// 정책: 기록을 "추가"하는 경로는 전부 초안을 남긴다(빈 폼·복제·루틴으로 시작).
+// 셋 다 create를 호출하는 신규 작성이므로 같게 다뤄야 한다. 수정만 예외.
+describe('RoutineLogFormPage 초안 정책 일관성', () => {
+  it('루틴으로 시작해도 손대면 초안이 남는다', async () => {
+    const tpl = await routineTemplatesRepo.create({ title: '하체 루틴' })
+    renderForm(`/logs/new?fromTemplate=${tpl.id}`)
+    await screen.findByDisplayValue('하체 루틴')
+
+    await userEvent.type(screen.getByPlaceholderText('컨디션, 기록 등'), '오늘 컨디션 좋음')
+    await waitFor(async () => {
+      expect((await logDraftRepo.get())?.form.memo).toBe('오늘 컨디션 좋음')
+    })
+    // 어느 루틴에서 시작했는지도 함께 남는다
+    expect((await logDraftRepo.get())?.form.templateId).toBe(tpl.id)
+  })
+
+  it('복제로 시작해도 손대면 초안이 남는다', async () => {
+    const src = await routineLogsRepo.create({ title: '원본 기록', date: '2026-06-10' })
+    renderForm(`/logs/new?from=${src.id}`)
+    await screen.findByDisplayValue('원본 기록')
+
+    await userEvent.type(screen.getByPlaceholderText('컨디션, 기록 등'), '복제본 메모')
+    await waitFor(async () => {
+      expect((await logDraftRepo.get())?.form.memo).toBe('복제본 메모')
+    })
+  })
+
+  it('루틴으로 시작해서 손대지 않고 나가면 초안이 생기지 않는다', async () => {
+    const tpl = await routineTemplatesRepo.create({ title: '안건드릴 루틴' })
+    renderForm(`/logs/new?fromTemplate=${tpl.id}`)
+    await screen.findByDisplayValue('안건드릴 루틴')
+    await userEvent.click(screen.getByLabelText('뒤로'))
+
+    expect(await logDraftRepo.get()).toBeNull()
+  })
+
+  it('루틴으로 들어와도 초안이 있으면 물어본다', async () => {
+    await logDraftRepo.save({
+      title: '작성중이던 것',
+      date: '2026-08-10',
+      time: '09:00',
+      status: 'planned',
+      exercises: [],
+      memo: '메모',
+      templateId: null,
+    })
+    const tpl = await routineTemplatesRepo.create({ title: '새 루틴' })
+    renderForm(`/logs/new?fromTemplate=${tpl.id}`)
+
+    expect(await screen.findByText('작성 중이던 기록이 있어요')).toBeInTheDocument()
+    // 「새로 시작」을 고르면 루틴 내용이 그대로 남는다
+    await userEvent.click(screen.getByRole('button', { name: '새로 시작' }))
+    expect(screen.getByDisplayValue('새 루틴')).toBeInTheDocument()
   })
 })

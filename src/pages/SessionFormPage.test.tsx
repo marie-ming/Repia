@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
@@ -32,6 +32,10 @@ function renderForm(initialPath: string) {
 }
 
 describe('SessionFormPage — 신규', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('회원 미선택 상태에서는 저장 비활성', async () => {
     await membersRepo.create({ name: '홍길동' })
     renderForm('/sessions/new')
@@ -139,5 +143,23 @@ describe('SessionFormPage — 수정', () => {
     await waitFor(async () => {
       expect(await sessionsRepo.findById(s.id)).toBeUndefined()
     })
+  })
+
+  it('삭제 실패 시 성공 토스트 대신 실패를 알린다', async () => {
+    vi.spyOn(sessionsRepo, 'delete').mockRejectedValueOnce(new Error('쓰기 거부'))
+    const member = await membersRepo.create({ name: '홍길동' })
+    const s = await sessionsRepo.create({
+      memberId: member.id,
+      memberNameSnapshot: member.name,
+      date: '2026-06-10',
+      status: 'reserved',
+    })
+    renderForm(`/sessions/${s.id}/edit`)
+    await screen.findByDisplayValue('2026-06-10')
+    await userEvent.click(screen.getByRole('button', { name: '삭제' }))
+    const dialog = await screen.findByRole('alertdialog')
+    await userEvent.click(within(dialog).getByRole('button', { name: '삭제' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('삭제 실패: 쓰기 거부')
+    expect(await sessionsRepo.findById(s.id)).toBeDefined() // 실제로 남아 있다
   })
 })

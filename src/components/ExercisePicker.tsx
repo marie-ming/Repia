@@ -8,6 +8,7 @@ import {
   EQUIPMENT_LABELS,
   EXERCISE_METRIC_OPTIONS,
 } from '../constants.ts'
+import { useToast } from './Toast.tsx'
 
 type CategoryFilter = ExerciseCategory | 'all'
 type EquipmentFilter = Equipment | 'all'
@@ -39,6 +40,7 @@ export function ExercisePicker({
   const [createExpanded, setCreateExpanded] = useState(false)
   const [justCreatedId, setJustCreatedId] = useState<string | null>(null)
   const listRef = useRef<HTMLUListElement>(null)
+  const showToast = useToast()
 
   // 새로 만든 운동 카드로 자동 스크롤
   useEffect(() => {
@@ -103,6 +105,9 @@ export function ExercisePicker({
       setCreateMetric('weight_reps')
       setCreateExpanded(false)
       setJustCreatedId(ex.id)
+    } catch (err) {
+      // catch가 없으면 스피너만 꺼지고 운동은 안 만들어진 채 아무 안내가 없다
+      showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
     } finally {
       setCreating(false)
     }

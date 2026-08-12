@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
@@ -37,6 +37,10 @@ async function renderWithMember(member?: Member) {
 }
 
 describe('MemberDetailPage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('회원 정보 표시 (이름·연락처·등록일·메모)', async () => {
     await renderWithMember()
     expect(await screen.findByRole('heading', { name: '홍길동' })).toBeInTheDocument()
@@ -97,6 +101,17 @@ describe('MemberDetailPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('loc')).toHaveTextContent('/members')
     })
+  })
+
+  it('삭제 실패 시 성공 토스트 대신 실패를 알린다', async () => {
+    vi.spyOn(membersRepo, 'delete').mockRejectedValueOnce(new Error('쓰기 거부'))
+    await renderWithMember()
+    await userEvent.click(await screen.findByRole('button', { name: '수정' }))
+    await userEvent.click(screen.getByRole('button', { name: '삭제' }))
+    const dialog = await screen.findByRole('alertdialog')
+    await userEvent.click(within(dialog).getByRole('button', { name: '삭제' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('삭제 실패: 쓰기 거부')
+    expect(screen.queryByTestId('loc')).toBeNull() // 이동하지 않는다
   })
 
   it('없는 회원: 안내 표시', async () => {

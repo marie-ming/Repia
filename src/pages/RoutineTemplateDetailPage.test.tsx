@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
@@ -37,6 +37,10 @@ async function seedTemplate() {
 }
 
 describe('RoutineTemplateDetailPage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('제목·운동·메모 표시', async () => {
     const t = await seedTemplate()
     renderPage(t.id)
@@ -70,6 +74,19 @@ describe('RoutineTemplateDetailPage', () => {
     await waitFor(async () => {
       expect(await routineTemplatesRepo.findById(t.id)).toBeUndefined()
     })
+  })
+
+  it('삭제 실패 시 성공 토스트 대신 실패를 알린다', async () => {
+    vi.spyOn(routineTemplatesRepo, 'delete').mockRejectedValueOnce(new Error('쓰기 거부'))
+    const t = await seedTemplate()
+    renderPage(t.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    await userEvent.click(within(screen.getByRole('dialog')).getByText('삭제'))
+    const confirm = await screen.findByRole('alertdialog')
+    await userEvent.click(within(confirm).getByRole('button', { name: '삭제' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('삭제 실패: 쓰기 거부')
+    // 실제로 남아 있어야 한다
+    expect(await routineTemplatesRepo.findById(t.id)).toBeDefined()
   })
 
   it('없는 id: 안내', async () => {

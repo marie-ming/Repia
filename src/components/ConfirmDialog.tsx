@@ -8,6 +8,9 @@ interface ConfirmDialogProps {
   cancelLabel?: string
   danger?: boolean
   hideCancel?: boolean
+  // 배경 클릭·Esc로 닫히지 않게 한다. 두 선택지 중 하나가 되돌릴 수 없을 때
+  // 실수로 닫아 잃는 일을 막기 위함.
+  dismissible?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
@@ -20,22 +23,23 @@ export function ConfirmDialog({
   cancelLabel = '취소',
   danger = false,
   hideCancel = false,
+  dismissible = true,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   useEffect(() => {
-    if (!open) return
+    if (!open || !dismissible) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onCancel])
+  }, [open, dismissible, onCancel])
 
   if (!open) return null
 
   return (
-    <div className="dialog-backdrop" onClick={onCancel}>
+    <div className="dialog-backdrop" onClick={dismissible ? onCancel : undefined}>
       <div
         className="dialog"
         role="alertdialog"

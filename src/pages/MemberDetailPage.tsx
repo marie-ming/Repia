@@ -72,11 +72,16 @@ export function MemberDetailPage() {
 
   async function confirmDelete() {
     if (!member) return
-    await membersRepo.delete(member.id)
-    setConfirmDel(false)
-    setEditOpen(false)
-    showToast('회원이 삭제되었습니다')
-    navigate('/members')
+    try {
+      await membersRepo.delete(member.id)
+      setConfirmDel(false)
+      setEditOpen(false)
+      showToast('회원이 삭제되었습니다')
+      navigate('/members')
+    } catch (err) {
+      setConfirmDel(false)
+      showToast(err instanceof Error ? `삭제 실패: ${err.message}` : '삭제에 실패했습니다')
+    }
   }
 
   if (loading) {

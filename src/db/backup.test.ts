@@ -214,6 +214,18 @@ describe('exportBackup ↔ importBackup 왕복', () => {
     expect(await appConfigRepo.getMode()).toBe('personal')
   })
 
+  it('내보내면 마지막 백업 시각이 기록된다 (백업 안내 판단용)', async () => {
+    await exercisesRepo.create({ name: '운동' })
+    expect(await appConfigRepo.getLastBackupAt()).toBeNull()
+
+    const before = Date.now()
+    await captureExport()
+
+    const at = await appConfigRepo.getLastBackupAt()
+    expect(at).not.toBeNull()
+    expect(Date.parse(at as string)).toBeGreaterThanOrEqual(before)
+  })
+
   it('includesPhotos: false면 사진만 빠지고 나머지 필드는 유지된다', async () => {
     await exercisesRepo.create({
       name: '사진운동',

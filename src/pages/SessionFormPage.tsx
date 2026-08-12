@@ -126,9 +126,13 @@ export function SessionFormPage() {
 
   async function doDelete() {
     if (!id) return
-    await sessionsRepo.delete(id)
-    showToast('수업이 삭제되었습니다')
-    navigate('/', { replace: true })
+    try {
+      await sessionsRepo.delete(id)
+      showToast('수업이 삭제되었습니다')
+      navigate('/', { replace: true })
+    } catch (err) {
+      showToast(err instanceof Error ? `삭제 실패: ${err.message}` : '삭제에 실패했습니다')
+    }
   }
 
   if (!loaded) {
