@@ -62,9 +62,10 @@ export function RoutineLogFormPage() {
   const [history, setHistory] = useState<RoutineLog[]>([])
   const [log, setLog] = useState<RoutineLog | null>(null)
   const [confirmClose, setConfirmClose] = useState(false)
-  // 빈 폼에서 새로 쓰기 시작하는 경우에만 초안을 다룬다.
-  // 수정·복제·루틴으로 시작은 이미 채워진 내용이 있어 초안이 끼어들면 오히려 헷갈린다.
-  const draftEnabled = !isEdit && !fromId && !fromTemplateId
+  // 기록을 "추가"하는 경로는 전부 초안을 남긴다(빈 폼·복제·루틴으로 시작).
+  // 셋 다 create를 호출하는 신규 작성이라 같게 다루는 게 맞다.
+  // 수정은 제외 — 이미 저장된 기록이 있어 원본과 초안 중 무엇을 보여줄지 애매해진다.
+  const draftEnabled = !isEdit
   const [pendingDraft, setPendingDraft] = useState<LogDraft | null>(null)
 
   const load = useCallback(async () => {
@@ -115,8 +116,10 @@ export function RoutineLogFormPage() {
         setForm(initial)
         initRef.current = initial
       }
-    } else if (draftEnabled) {
-      // 작성 중이던 게 있으면 물어본다 (바로 덮어씌우지 않는다)
+    }
+    // 신규 작성이면 어느 경로로 들어왔든 작성 중이던 게 있는지 확인한다.
+    // 복제·루틴으로 시작은 이미 프리필됐으므로, 「새로 시작」을 고르면 그 내용이 그대로 남는다.
+    if (draftEnabled) {
       const draft = await logDraftRepo.get()
       if (draft) setPendingDraft(draft)
     }
@@ -133,23 +136,28 @@ export function RoutineLogFormPage() {
   // 작성 중인 내용을 계속 남겨둔다. 매 입력마다 쓰지 않도록 잠깐 모아서 저장.
   // 복구 여부를 묻는 중(pendingDraft)에는 빈 폼으로 덮어쓰지 않도록 멈춘다.
   useEffect(() => {
-    if (!draftEnabled || !loaded || pendingDraft) return
+    // 손대지 않았으면 초안을 만들지 않는다. 루틴으로 시작했다가 그냥 나간 경우
+    // 프리필된 내용이 초안으로 남아 다음에 뜬금없이 물어보는 걸 막는다.
+    if (!draftEnabled || !loaded || pendingDraft || !isDirty) return
     const t = setTimeout(() => {
       logDraftRepo.save(form).catch(() => {
         /* 초안 저장 실패는 사용자를 막을 일이 아니라 조용히 넘긴다 */
       })
     }, 500)
     return () => clearTimeout(t)
-  }, [form, draftEnabled, loaded, pendingDraft])
+  }, [form, draftEnabled, loaded, pendingDraft, isDirty])
 
   // 디바운스만 두면 마지막 몇 백 ms의 입력이 날아간다. 정작 이 기능이 막으려는 상황
   // (전화가 와서 앱이 백그라운드로 가거나 그대로 종료)이 바로 그 순간에 일어난다.
   // 화면이 가려지거나 페이지가 떠날 때 즉시 한 번 더 저장한다.
   const formRef = useRef(form)
   formRef.current = form
+  const dirtyRef = useRef(isDirty)
+  dirtyRef.current = isDirty
   useEffect(() => {
     if (!draftEnabled || !loaded || pendingDraft) return
     const flush = () => {
+      if (!dirtyRef.current) return
       logDraftRepo.save(formRef.current).catch(() => {})
     }
     const onVisibility = () => {

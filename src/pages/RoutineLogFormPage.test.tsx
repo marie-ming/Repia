@@ -215,3 +215,59 @@ describe('RoutineLogFormPage 나가기 안내', () => {
     expect(screen.queryByText('저장하지 않은 변경사항이 있습니다')).not.toBeInTheDocument()
   })
 })
+
+// 정책: 기록을 "추가"하는 경로는 전부 초안을 남긴다(빈 폼·복제·루틴으로 시작).
+// 셋 다 create를 호출하는 신규 작성이므로 같게 다뤄야 한다. 수정만 예외.
+describe('RoutineLogFormPage 초안 정책 일관성', () => {
+  it('루틴으로 시작해도 손대면 초안이 남는다', async () => {
+    const tpl = await routineTemplatesRepo.create({ title: '하체 루틴' })
+    renderForm(`/logs/new?fromTemplate=${tpl.id}`)
+    await screen.findByDisplayValue('하체 루틴')
+
+    await userEvent.type(screen.getByPlaceholderText('컨디션, 기록 등'), '오늘 컨디션 좋음')
+    await waitFor(async () => {
+      expect((await logDraftRepo.get())?.form.memo).toBe('오늘 컨디션 좋음')
+    })
+    // 어느 루틴에서 시작했는지도 함께 남는다
+    expect((await logDraftRepo.get())?.form.templateId).toBe(tpl.id)
+  })
+
+  it('복제로 시작해도 손대면 초안이 남는다', async () => {
+    const src = await routineLogsRepo.create({ title: '원본 기록', date: '2026-06-10' })
+    renderForm(`/logs/new?from=${src.id}`)
+    await screen.findByDisplayValue('원본 기록')
+
+    await userEvent.type(screen.getByPlaceholderText('컨디션, 기록 등'), '복제본 메모')
+    await waitFor(async () => {
+      expect((await logDraftRepo.get())?.form.memo).toBe('복제본 메모')
+    })
+  })
+
+  it('루틴으로 시작해서 손대지 않고 나가면 초안이 생기지 않는다', async () => {
+    const tpl = await routineTemplatesRepo.create({ title: '안건드릴 루틴' })
+    renderForm(`/logs/new?fromTemplate=${tpl.id}`)
+    await screen.findByDisplayValue('안건드릴 루틴')
+    await userEvent.click(screen.getByLabelText('뒤로'))
+
+    expect(await logDraftRepo.get()).toBeNull()
+  })
+
+  it('루틴으로 들어와도 초안이 있으면 물어본다', async () => {
+    await logDraftRepo.save({
+      title: '작성중이던 것',
+      date: '2026-08-10',
+      time: '09:00',
+      status: 'planned',
+      exercises: [],
+      memo: '메모',
+      templateId: null,
+    })
+    const tpl = await routineTemplatesRepo.create({ title: '새 루틴' })
+    renderForm(`/logs/new?fromTemplate=${tpl.id}`)
+
+    expect(await screen.findByText('작성 중이던 기록이 있어요')).toBeInTheDocument()
+    // 「새로 시작」을 고르면 루틴 내용이 그대로 남는다
+    await userEvent.click(screen.getByRole('button', { name: '새로 시작' }))
+    expect(screen.getByDisplayValue('새 루틴')).toBeInTheDocument()
+  })
+})
