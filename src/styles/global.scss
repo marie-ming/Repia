@@ -2259,10 +2259,13 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
 // Toast
 .toast {
   position: fixed;
-  left: 50%;
+  // left: 50%로 중앙을 잡으면 고정 요소의 가용 폭이 화면의 오른쪽 절반으로 줄어,
+  // 그보다 긴 문구는 화면이 넓어도 무조건 줄바꿈된다. 좌우 여백 + margin auto로 센터링.
+  left: 1rem;
+  right: 1rem;
+  margin-inline: auto;
+  width: fit-content;
   bottom: calc(5rem + var(--safe-bottom));
-  transform: translateX(-50%);
-  max-width: calc(100% - 2rem);
   background: rgba(20, 20, 30, 0.95);
   border: 1px solid var(--color-border);
   color: var(--color-text);
@@ -2280,11 +2283,11 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translate(-50%, 0.5rem);
+    transform: translateY(0.5rem);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateY(0);
   }
 }
 

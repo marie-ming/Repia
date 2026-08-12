@@ -71,3 +71,29 @@ test('새로 시작을 고르면 초안이 버려진다', async ({ page }) => {
   await page.getByLabel('운동 추가').click()
   await expect(page.getByText('작성 중이던 기록이 있어요')).toHaveCount(0)
 })
+
+// left: 50%로 중앙을 잡으면 고정 요소의 가용 폭이 화면 절반으로 줄어,
+// 긴 문구가 화면이 넓은데도 줄바꿈됐다.
+test('토스트가 긴 문구에서도 한 줄로 나온다', async ({ page }) => {
+  await gotoPersonalHome(page)
+  await page.getByLabel('운동 추가').click()
+  await page.getByPlaceholder(/제목 입력/).fill('토스트 확인')
+  await page.getByLabel('뒤로').click()
+
+  const toast = page.getByRole('status')
+  await expect(toast).toContainText('임시 저장')
+
+  const box = await toast.boundingBox()
+  const oneLine = await toast.evaluate((el) => {
+    const cs = getComputedStyle(el)
+    // 같은 스타일에 짧은 문구를 넣어 1줄 높이를 잰다
+    const probe = el.cloneNode(false) as HTMLElement
+    probe.textContent = '짧음'
+    el.parentElement!.appendChild(probe)
+    const h = probe.getBoundingClientRect().height
+    probe.remove()
+    void cs
+    return h
+  })
+  expect(box!.height).toBeLessThanOrEqual(oneLine + 2)
+})
