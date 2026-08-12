@@ -142,6 +142,27 @@ export function RoutineLogFormPage() {
     return () => clearTimeout(t)
   }, [form, draftEnabled, loaded, pendingDraft])
 
+  // 디바운스만 두면 마지막 몇 백 ms의 입력이 날아간다. 정작 이 기능이 막으려는 상황
+  // (전화가 와서 앱이 백그라운드로 가거나 그대로 종료)이 바로 그 순간에 일어난다.
+  // 화면이 가려지거나 페이지가 떠날 때 즉시 한 번 더 저장한다.
+  const formRef = useRef(form)
+  formRef.current = form
+  useEffect(() => {
+    if (!draftEnabled || !loaded || pendingDraft) return
+    const flush = () => {
+      logDraftRepo.save(formRef.current).catch(() => {})
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [draftEnabled, loaded, pendingDraft])
+
   // 운동별 가장 최근 기록의 세트 구성 전체 (현재 편집 중인 기록·취소 제외)
   const lastSetsByExercise = useMemo(() => {
     const map = new Map<string, SetEntry[]>()

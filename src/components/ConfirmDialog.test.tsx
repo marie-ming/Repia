@@ -93,4 +93,28 @@ describe('ConfirmDialog', () => {
     setup({ danger: true })
     expect(screen.getByRole('button', { name: '확인' })).toHaveClass('btn--danger')
   })
+
+  // 두 선택지 중 하나가 되돌릴 수 없을 때(예: 작성 중이던 기록 복구),
+  // 실수로 배경을 눌러 닫히면 그대로 잃는다.
+  describe('dismissible: false', () => {
+    it('배경을 눌러도 닫히지 않는다', async () => {
+      const { onCancel, container } = setup({ dismissible: false })
+      await userEvent.click(container.querySelector('.dialog-backdrop') as HTMLElement)
+      expect(onCancel).not.toHaveBeenCalled()
+    })
+
+    it('ESC로도 닫히지 않는다', async () => {
+      const { onCancel } = setup({ dismissible: false })
+      await userEvent.keyboard('{Escape}')
+      expect(onCancel).not.toHaveBeenCalled()
+    })
+
+    it('버튼으로는 정상 동작한다', async () => {
+      const { onConfirm, onCancel } = setup({ dismissible: false })
+      await userEvent.click(screen.getByRole('button', { name: '취소' }))
+      expect(onCancel).toHaveBeenCalledOnce()
+      await userEvent.click(screen.getByRole('button', { name: '확인' }))
+      expect(onConfirm).toHaveBeenCalledOnce()
+    })
+  })
 })
