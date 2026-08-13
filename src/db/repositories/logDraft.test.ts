@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   DRAFT_EXPIRE_DAYS,
   isDraftExpired,
+  isDraftFormShape,
   isDraftWorthKeeping,
   logDraftRepo,
   type LogDraftForm,
 } from './logDraft.ts'
+import { appConfigRepo } from './appConfig.ts'
 
 function form(over: Partial<LogDraftForm> = {}): LogDraftForm {
   return {
@@ -93,5 +95,76 @@ describe('logDraftRepo', () => {
     await logDraftRepo.save(form({ title: '첫번째' }))
     await logDraftRepo.save(form({ title: '두번째' }))
     expect((await logDraftRepo.get())?.form.title).toBe('두번째')
+  })
+})
+
+describe('isDraftFormShape', () => {
+  it('정상 폼은 통과', () => {
+    expect(isDraftFormShape(form())).toBe(true)
+    expect(
+      isDraftFormShape(form({ exercises: [{ exerciseId: 'e1', sets: [{ weight: 60, reps: 10 }] }] })),
+    ).toBe(true)
+  })
+
+  it('폼이 아예 아니면 거부', () => {
+    expect(isDraftFormShape(null)).toBe(false)
+    expect(isDraftFormShape(undefined)).toBe(false)
+    expect(isDraftFormShape('문자열')).toBe(false)
+    expect(isDraftFormShape(42)).toBe(false)
+  })
+
+  // 읽는 쪽에서 .length / .trim() / .map()을 부르는 필드들
+  it('예외를 일으킬 필드가 빠지면 거부', () => {
+    const { exercises: _ex, ...noExercises } = form()
+    expect(isDraftFormShape(noExercises)).toBe(false)
+
+    const { title: _t, ...noTitle } = form()
+    expect(isDraftFormShape(noTitle)).toBe(false)
+
+    const { memo: _m, ...noMemo } = form()
+    expect(isDraftFormShape(noMemo)).toBe(false)
+  })
+
+  it('타입이 어긋나면 거부', () => {
+    expect(isDraftFormShape(form({ exercises: '운동' as never }))).toBe(false)
+    expect(isDraftFormShape(form({ title: 3 as never }))).toBe(false)
+    expect(isDraftFormShape(form({ templateId: 7 as never }))).toBe(false)
+  })
+
+  it('운동 항목의 sets가 배열이 아니면 거부', () => {
+    expect(isDraftFormShape(form({ exercises: [{ exerciseId: 'e1' }] as never }))).toBe(false)
+    expect(
+      isDraftFormShape(form({ exercises: [{ exerciseId: 'e1', sets: null }] as never })),
+    ).toBe(false)
+    expect(isDraftFormShape(form({ exercises: [null] as never }))).toBe(false)
+  })
+
+  it('templateId는 null이어도 된다', () => {
+    expect(isDraftFormShape(form({ templateId: null }))).toBe(true)
+    expect(isDraftFormShape(form({ templateId: 'tpl-1' }))).toBe(true)
+  })
+})
+
+// 백업 복원은 appConfig 행을 파일에 있는 그대로 넣는다. 손상된 초안이 들어오면
+// 읽는 쪽에서 예외가 나고, 기록 추가 화면이 초안을 지울 방법도 없이 멈춘다.
+describe('망가진 초안 방어', () => {
+  it('모양이 어긋난 초안은 없는 것으로 보고 지운다', async () => {
+    await appConfigRepo.set('logDraft', {
+      savedAt: new Date().toISOString(),
+      form: { title: '망가짐' }, // exercises/memo 없음
+    })
+    expect(await logDraftRepo.get()).toBeNull()
+    // 다시 읽어도 없다 (정리까지 됨)
+    expect(await appConfigRepo.get('logDraft')).toBeNull()
+  })
+
+  it('예외를 던지지 않는다', async () => {
+    await appConfigRepo.set('logDraft', { savedAt: daysAgo(1), form: { exercises: null } })
+    await expect(logDraftRepo.get()).resolves.toBeNull()
+  })
+
+  it('form 자체가 없으면 조용히 없는 것으로 본다', async () => {
+    await appConfigRepo.set('logDraft', { savedAt: daysAgo(1) })
+    await expect(logDraftRepo.get()).resolves.toBeNull()
   })
 })
