@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { membersRepo } from '../db/repositories/members.ts'
@@ -17,6 +17,8 @@ import {
   todayISODate,
 } from '../utils/date.ts'
 import { SESSION_STATUS_LABELS } from '../constants.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 export function TrainerHomePage() {
   const navigate = useNavigate()
@@ -36,9 +38,7 @@ export function TrainerHomePage() {
     setSessions(list)
   }, [viewMonth])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   // 트레이너는 수업 유무만 dot 1개로 표시 (개수 무의미)
   const markedCounts = useMemo(() => {
@@ -91,7 +91,10 @@ export function TrainerHomePage() {
       </div>
 
       <div className="day-sessions">
-        {daySessions.length === 0 ? (
+        {/* 못 읽은 걸 「수업이 없습니다」로 보여주면 없는 것과 구분이 안 된다 */}
+        {loadError ? (
+          <LoadError onRetry={retry} />
+        ) : daySessions.length === 0 ? (
           <p className="day-sessions__empty">예정된 수업이 없습니다.</p>
         ) : (
           <ul className="session-list">

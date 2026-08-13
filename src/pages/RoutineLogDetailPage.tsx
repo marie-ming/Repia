@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
@@ -22,6 +22,8 @@ import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
 import { generateWorkoutShareImage } from '../utils/shareImage.ts'
 import { BestProgress } from '../components/BestProgress.tsx'
 import { prevBestByExercise } from '../utils/prevBest.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 export function RoutineLogDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -47,9 +49,7 @@ export function RoutineLogDetailPage() {
     setLoading(false)
   }, [id])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   const exMap = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
@@ -129,6 +129,10 @@ export function RoutineLogDetailPage() {
       setConfirmDel(false)
       showToast(err instanceof Error ? `삭제 실패: ${err.message}` : '삭제에 실패했습니다')
     }
+  }
+
+  if (loadError) {
+    return <div className="detail"><LoadError onRetry={retry} /></div>
   }
 
   if (loading) {

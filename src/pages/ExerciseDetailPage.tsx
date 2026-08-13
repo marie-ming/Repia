@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
@@ -24,6 +24,8 @@ import {
 } from '../constants.ts'
 import { formatShortDate } from '../utils/date.ts'
 import { generateExerciseShareImage } from '../utils/shareImage.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 interface RecentItem {
   id: string
@@ -93,9 +95,7 @@ export function ExerciseDetailPage() {
     setLoading(false)
   }, [id, mode])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   function onCarouselScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget
@@ -169,6 +169,10 @@ export function ExerciseDetailPage() {
       if ((err as Error)?.name === 'AbortError') return // 사용자가 공유 취소
       showToast('공유할 수 없습니다')
     }
+  }
+
+  if (loadError) {
+    return <div className="page"><LoadError onRetry={retry} /></div>
   }
 
   if (loading) {

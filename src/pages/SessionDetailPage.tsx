@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
@@ -12,6 +12,8 @@ import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
 import { BestProgress } from '../components/BestProgress.tsx'
 import { prevBestByExercise } from '../utils/prevBest.ts'
 import { generateWorkoutShareImage } from '../utils/shareImage.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -42,9 +44,7 @@ export function SessionDetailPage() {
     return prevBestByExercise(toEntry(session), memberSessions.map(toEntry), exMap)
   }, [session, memberSessions, exMap])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   async function handleShare() {
     if (!session) return
@@ -71,6 +71,10 @@ export function SessionDetailPage() {
       if ((err as Error)?.name === 'AbortError') return
       showToast('공유할 수 없습니다')
     }
+  }
+
+  if (loadError) {
+    return <div className="detail"><LoadError onRetry={retry} /></div>
   }
 
   if (loading) {

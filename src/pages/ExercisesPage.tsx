@@ -10,6 +10,9 @@ import {
   EQUIPMENT_LABELS,
 } from '../constants.ts'
 import { useFilterParams, useUrlBackedText } from '../utils/useFilterParams.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
+import { normalizeExerciseName } from '../utils/exerciseName.ts'
 
 type CategoryFilter = ExerciseCategory | 'all'
 type EquipmentFilter = Equipment | 'all'
@@ -37,9 +40,7 @@ export function ExercisesPage() {
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   // 새로 만든 운동으로 자동 스크롤 (목록에서 생성 후 복귀 시)
   useEffect(() => {
@@ -52,11 +53,12 @@ export function ExercisesPage() {
   }, [createdId, loading, exercises])
 
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    // 피커 검색과 같은 규칙 — 두 검색창이 다르게 동작하면 곤란하다
+    const q = normalizeExerciseName(query)
     return exercises.filter((ex) => {
       if (category !== 'all' && !ex.categories.includes(category)) return false
       if (equipment !== 'all' && ex.equipment !== equipment) return false
-      if (q && !ex.name.toLowerCase().includes(q)) return false
+      if (q && !normalizeExerciseName(ex.name).includes(q)) return false
       return true
     })
   }, [exercises, query, category, equipment])
@@ -124,7 +126,9 @@ export function ExercisesPage() {
         )}
       </div>
 
-      {loading ? (
+      {loadError ? (
+        <LoadError onRetry={retry} />
+      ) : loading ? (
         <p className="page__placeholder">불러오는 중...</p>
       ) : visible.length === 0 ? (
         <div className="empty">

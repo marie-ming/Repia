@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
@@ -7,6 +7,8 @@ import { ChevronLeftIcon } from '../components/icons.tsx'
 import { formatSetShort } from '../constants.ts'
 import { bestSetLabel } from '../utils/setStats.ts'
 import { formatShortDate } from '../utils/date.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 interface HistoryItem {
   id: string
@@ -38,15 +40,17 @@ export function ExerciseHistoryPage() {
     setLoading(false)
   }, [id])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   const best = useMemo(() => {
     if (!exercise) return null
     const allSets = items.flatMap((i) => i.sets)
     return bestSetLabel(exercise.metric, allSets, exercise.assisted)
   }, [exercise, items])
+
+  if (loadError) {
+    return <div className="detail"><LoadError onRetry={retry} /></div>
+  }
 
   if (loading) {
     return <div className="detail"><p className="page__placeholder">불러오는 중...</p></div>

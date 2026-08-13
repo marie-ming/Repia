@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type {
   RoutineTemplate,
@@ -17,6 +17,8 @@ import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon } from '../components/icons.tsx'
 import { EXERCISE_CATEGORY_OPTIONS } from '../constants.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 const MAX_CATEGORIES = 3
 
@@ -68,9 +70,7 @@ export function RoutineTemplateFormPage() {
     setLoaded(true)
   }, [id, isEdit])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
   const canSave = form.title.trim().length > 0 && (!isEdit || isDirty)
@@ -134,6 +134,10 @@ export function RoutineTemplateFormPage() {
   function handleBack() {
     if (isDirty) setConfirmClose(true)
     else navigate(-1)
+  }
+
+  if (loadError) {
+    return <div className="detail"><LoadError onRetry={retry} /></div>
   }
 
   if (!loaded) {

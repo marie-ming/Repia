@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Exercise, ExerciseCategory, Equipment, ExerciseMetric } from '../db/types.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
@@ -13,6 +13,9 @@ import {
   EXERCISE_METRIC_LABELS,
 } from '../constants.ts'
 import { fileToResizedDataURL } from '../utils/image.ts'
+import { isDuplicateExerciseName } from '../utils/exerciseName.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 const MAX_CATEGORIES = 3
 
@@ -65,9 +68,13 @@ export function ExerciseFormPage() {
   const [confirmClose, setConfirmClose] = useState(false)
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [metricLocked, setMetricLocked] = useState(false)
+  const [allExercises, setAllExercises] = useState<Exercise[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
+    // 이름 중복 확인용
+    setAllExercises(await exercisesRepo.findAll())
+
     if (!id) return
     const ex = await exercisesRepo.findById(id)
     if (ex) {
@@ -80,12 +87,17 @@ export function ExerciseFormPage() {
     setLoaded(true)
   }, [id])
 
-  useEffect(() => {
-    if (isEdit) load()
-  }, [isEdit, load])
+  // load()는 신규(!id)면 스스로 빠져나가므로 그대로 넘겨도 된다
+  const { error: loadError, retry } = useLoader(load)
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
-  const canSave = form.name.trim().length > 0 && (!isEdit || isDirty)
+
+  // 같은 운동이 둘로 갈리면 최고 기록과 향상 추적이 각각 반쪽이 된다.
+  // 피커(ExercisePicker)와 같은 규칙을 쓴다.
+  const trimmedName = form.name.trim()
+  const isDuplicateName = isDuplicateExerciseName(form.name, allExercises, id)
+
+  const canSave = trimmedName.length > 0 && !isDuplicateName && (!isEdit || isDirty)
 
   function toggleCategory(value: ExerciseCategory) {
     setForm((f) => {
@@ -146,6 +158,10 @@ export function ExerciseFormPage() {
   function handleBack() {
     if (isDirty) setConfirmClose(true)
     else navigate(-1)
+  }
+
+  if (loadError) {
+    return <div className="detail"><LoadError onRetry={retry} /></div>
   }
 
   if (isEdit && !loaded) {
@@ -213,7 +229,13 @@ export function ExerciseFormPage() {
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="운동 입력"
               autoFocus
+              aria-invalid={isDuplicateName || undefined}
             />
+            {isDuplicateName && (
+              <span className="field__error" role="alert">
+                같은 이름의 운동이 이미 있습니다
+              </span>
+            )}
           </label>
 
           <div className="field">

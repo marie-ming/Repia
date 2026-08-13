@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
@@ -18,6 +18,8 @@ import {
   todayISODate,
 } from '../utils/date.ts'
 import { ROUTINE_LOG_STATUS_LABELS } from '../constants.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 export function PersonalHomePage() {
   const navigate = useNavigate()
@@ -40,9 +42,7 @@ export function PersonalHomePage() {
     setExercises(exs)
   }, [viewMonth])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   const exerciseNameById = useMemo(() => {
     const m = new Map<string, string>()
@@ -106,7 +106,10 @@ export function PersonalHomePage() {
       </div>
 
       <div className="day-sessions">
-        {monthLogs.length === 0 ? (
+        {/* 못 읽은 걸 「기록이 없습니다」로 보여주면 없는 것과 구분이 안 된다 */}
+        {loadError ? (
+          <LoadError onRetry={retry} />
+        ) : monthLogs.length === 0 ? (
           <p className="day-sessions__empty">이번 달 기록이 없습니다.</p>
         ) : (
           <ul className="log-list">

@@ -188,3 +188,74 @@ describe('ExercisePicker 인라인 생성 실패', () => {
     expect(onCreateExercise).toHaveBeenCalled()
   })
 })
+
+// 폼(ExerciseFormPage)과 같은 규칙을 써야 한다. 한쪽만 막으면 같은 운동이 둘로 갈린다.
+describe('ExercisePicker — 새로 만들기 이름 중복', () => {
+  function renderPicker() {
+    return render(
+      <ToastProvider>
+        <ExercisePicker
+          open
+          exercises={EXERCISES}
+          excludeIds={[]}
+          onClose={() => {}}
+          onConfirm={() => {}}
+          onCreateExercise={vi.fn()}
+        />
+      </ToastProvider>,
+    )
+  }
+
+  it('없는 이름이면 만들기가 뜬다', async () => {
+    renderPicker()
+    await userEvent.type(screen.getByPlaceholderText('운동 이름 검색'), '힙쓰러스트')
+    expect(screen.getByText(/“힙쓰러스트” 새 운동 만들기/)).toBeInTheDocument()
+  })
+
+  it('이미 있는 이름이면 만들기가 안 뜬다', async () => {
+    renderPicker()
+    await userEvent.type(screen.getByPlaceholderText('운동 이름 검색'), '데드리프트')
+    expect(screen.queryByText(/새 운동 만들기/)).not.toBeInTheDocument()
+  })
+
+  // 「데드리프트」와 「데드 리프트」는 같은 운동이다
+  it('중간 띄어쓰기만 다른 것도 막는다', async () => {
+    renderPicker()
+    await userEvent.type(screen.getByPlaceholderText('운동 이름 검색'), '데드 리프트')
+    expect(screen.queryByText(/새 운동 만들기/)).not.toBeInTheDocument()
+  })
+
+  // 만들기가 막힌 채로 검색까지 안 되면 아무것도 못 하는 막다른 화면이 된다
+  it('띄어쓰기를 달리 쳐도 이미 있는 운동을 찾아준다', async () => {
+    renderPicker()
+    await userEvent.type(screen.getByPlaceholderText('운동 이름 검색'), '데드 리프트')
+    expect(screen.getByText('데드리프트')).toBeInTheDocument()
+    expect(screen.queryByText('운동 이름을 검색해 새로 만들 수 있어요.')).not.toBeInTheDocument()
+  })
+
+  it('대소문자만 다른 것도 막는다', async () => {
+    render(
+      <ToastProvider>
+        <ExercisePicker
+          open
+          exercises={[makeEx({ id: 'ex_9', name: 'Lat Pulldown' })]}
+          excludeIds={[]}
+          onClose={() => {}}
+          onConfirm={() => {}}
+          onCreateExercise={vi.fn()}
+        />
+      </ToastProvider>,
+    )
+    await userEvent.type(screen.getByPlaceholderText('운동 이름 검색'), 'lat pulldown')
+
+    expect(screen.queryByText(/새 운동 만들기/)).not.toBeInTheDocument()
+    // 검색으로는 찾아줘야 막다른 화면이 안 된다
+    expect(screen.getByText('Lat Pulldown')).toBeInTheDocument()
+  })
+
+  it('띄어쓰기를 지워도 다른 이름이면 만들 수 있다', async () => {
+    renderPicker()
+    await userEvent.type(screen.getByPlaceholderText('운동 이름 검색'), '루마니안 데드리프트')
+    expect(screen.getByText(/“루마니안 데드리프트” 새 운동 만들기/)).toBeInTheDocument()
+  })
+})

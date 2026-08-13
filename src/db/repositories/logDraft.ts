@@ -32,6 +32,31 @@ export function isDraftWorthKeeping(form: LogDraftForm): boolean {
   return form.exercises.length > 0 || form.title.trim() !== '' || form.memo.trim() !== ''
 }
 
+// 초안이 항상 이 모양이라고 믿을 수 없다. 백업 복원은 appConfig 행을 파일에 있는
+// 그대로 넣기 때문에, 손상됐거나 다른 버전이 만든 초안이 들어올 수 있다.
+// 모양이 어긋나면 읽는 쪽에서 예외가 나고, 그러면 기록 추가 화면이 초안을 지울
+// 방법도 없는 채로 멈춰버린다 — 그래서 여기서 걸러 없는 것으로 취급한다.
+export function isDraftFormShape(form: unknown): form is LogDraftForm {
+  if (!form || typeof form !== 'object') return false
+  const f = form as Record<string, unknown>
+  return (
+    typeof f.title === 'string' &&
+    typeof f.date === 'string' &&
+    typeof f.time === 'string' &&
+    typeof f.status === 'string' &&
+    typeof f.memo === 'string' &&
+    (f.templateId === null || typeof f.templateId === 'string') &&
+    Array.isArray(f.exercises) &&
+    f.exercises.every(
+      (r) =>
+        !!r &&
+        typeof r === 'object' &&
+        typeof (r as Record<string, unknown>).exerciseId === 'string' &&
+        Array.isArray((r as Record<string, unknown>).sets),
+    )
+  )
+}
+
 export function isDraftExpired(draft: LogDraft, now: Date = new Date()): boolean {
   const savedAt = new Date(draft.savedAt).getTime()
   if (Number.isNaN(savedAt)) return true // 깨진 값은 버린다
@@ -43,6 +68,10 @@ export const logDraftRepo = {
   async get(now: Date = new Date()): Promise<LogDraft | null> {
     const draft = await appConfigRepo.get<LogDraft>(KEY)
     if (!draft?.form) return null
+    if (!isDraftFormShape(draft.form)) {
+      await this.clear()
+      return null
+    }
     if (isDraftExpired(draft, now) || !isDraftWorthKeeping(draft.form)) {
       await this.clear()
       return null
