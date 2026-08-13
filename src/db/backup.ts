@@ -1,6 +1,7 @@
 import { getDB, withTransaction } from './index.ts'
 import { STORES } from './schema.ts'
 import { appConfigRepo } from './repositories/appConfig.ts'
+import { toISODate } from '../utils/date.ts'
 import type {
   AppConfigRecord,
   Member,
@@ -66,7 +67,9 @@ export async function exportBackup({ includesPhotos = true }: { includesPhotos?:
 
   const a = document.createElement('a')
   a.href = url
-  a.download = `repia-backup-${new Date().toISOString().slice(0, 10)}.json`
+  // toISOString()은 UTC라 오전 9시 전에 백업하면 파일명이 어제로 찍힌다.
+  // 앱의 다른 날짜는 전부 로컬 기준이므로 여기도 맞춘다.
+  a.download = `repia-backup-${toISODate(new Date())}.json`
   a.click()
   URL.revokeObjectURL(url)
 
