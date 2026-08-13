@@ -18,6 +18,8 @@ import { ChevronLeftIcon } from '../components/icons.tsx'
 import { ROUTINE_LOG_STATUS_OPTIONS } from '../constants.ts'
 import { formatDotDate, nowHHMM, todayISODate } from '../utils/date.ts'
 import { logDraftRepo, type LogDraft } from '../db/repositories/logDraft.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 interface FormData {
   title: string
@@ -126,9 +128,7 @@ export function RoutineLogFormPage() {
     setLoaded(true)
   }, [id, isEdit, fromId, fromTemplateId, defaultDate, draftEnabled])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
   const canSave = !!form.date && (!isEdit || isDirty)
@@ -237,6 +237,10 @@ export function RoutineLogFormPage() {
     }
     // 수정·복제·루틴으로 시작은 초안을 남기지 않으므로 경고가 맞다
     setConfirmClose(true)
+  }
+
+  if (loadError) {
+    return <div className="detail"><LoadError onRetry={retry} /></div>
   }
 
   if (!loaded) {

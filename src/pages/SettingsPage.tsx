@@ -42,7 +42,9 @@ export function SettingsPage() {
   }, [])
 
   useEffect(() => {
-    load()
+    // 여기서만 실패를 삼킨다. 백업 안내는 부가 정보인데 이걸 못 읽었다고 메뉴를
+    // 에러 화면으로 덮으면, 정작 복구에 필요한 「데이터 관리」로 들어갈 수 없다.
+    load().catch(() => setBackup({ kind: 'none' }))
   }, [load])
 
   const remind = needsBackupReminder(backup)

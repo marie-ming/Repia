@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
@@ -15,6 +15,8 @@ import {
 } from '../components/icons.tsx'
 import { EXERCISE_CATEGORY_LABELS } from '../constants.ts'
 import { RoutineReadonly } from '../components/RoutineReadonly.tsx'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 export function RoutineTemplateDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -37,9 +39,7 @@ export function RoutineTemplateDetailPage() {
     setLoading(false)
   }, [id])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   async function handleDelete() {
     if (!template) return
@@ -52,6 +52,10 @@ export function RoutineTemplateDetailPage() {
       setConfirmDel(false)
       showToast(err instanceof Error ? `삭제 실패: ${err.message}` : '삭제에 실패했습니다')
     }
+  }
+
+  if (loadError) {
+    return <div className="detail"><LoadError onRetry={retry} /></div>
   }
 
   if (loading) {

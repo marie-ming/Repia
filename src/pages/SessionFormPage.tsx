@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type {
   Session,
@@ -18,6 +18,8 @@ import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon } from '../components/icons.tsx'
 import { SESSION_STATUS_OPTIONS } from '../constants.ts'
 import { todayISODate } from '../utils/date.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 interface FormData {
   memberId: string | null
@@ -79,9 +81,7 @@ export function SessionFormPage() {
     setLoaded(true)
   }, [id, isEdit])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
   const canSave = !!form.memberId && !!form.date && (!isEdit || isDirty)
@@ -133,6 +133,10 @@ export function SessionFormPage() {
     } catch (err) {
       showToast(err instanceof Error ? `삭제 실패: ${err.message}` : '삭제에 실패했습니다')
     }
+  }
+
+  if (loadError) {
+    return <div className="detail"><LoadError onRetry={retry} /></div>
   }
 
   if (!loaded) {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { membersRepo } from '../db/repositories/members.ts'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
@@ -11,6 +11,8 @@ import { useToast } from '../components/Toast.tsx'
 import { ChevronLeftIcon } from '../components/icons.tsx'
 import { SESSION_STATUS_LABELS } from '../constants.ts'
 import { formatDotDate, formatShortDateWithWeekday } from '../utils/date.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -38,9 +40,7 @@ export function MemberDetailPage() {
     setLoading(false)
   }, [id])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   const exerciseNameById = useMemo(() => {
     const map = new Map<string, string>()
@@ -82,6 +82,10 @@ export function MemberDetailPage() {
       setConfirmDel(false)
       showToast(err instanceof Error ? `삭제 실패: ${err.message}` : '삭제에 실패했습니다')
     }
+  }
+
+  if (loadError) {
+    return <div className="detail"><LoadError onRetry={retry} /></div>
   }
 
   if (loading) {

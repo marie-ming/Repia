@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { routineTemplatesRepo } from '../db/repositories/routineTemplates.ts'
 import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
@@ -8,6 +8,8 @@ import { PlusIcon } from '../components/icons.tsx'
 import { EXERCISE_CATEGORY_OPTIONS, EXERCISE_CATEGORY_LABELS } from '../constants.ts'
 import { formatDotDate } from '../utils/date.ts'
 import { useFilterParams } from '../utils/useFilterParams.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 type CategoryFilter = ExerciseCategory | 'all'
 
@@ -41,9 +43,7 @@ export function RoutinesPage() {
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   const nameById = useMemo(() => {
     const m = new Map<string, string>()
@@ -92,7 +92,9 @@ export function RoutinesPage() {
         )}
       </div>
 
-      {loading ? (
+      {loadError ? (
+        <LoadError onRetry={retry} />
+      ) : loading ? (
         <p className="page__placeholder">불러오는 중...</p>
       ) : templates.length === 0 ? (
         <div className="empty">

@@ -10,6 +10,8 @@ import {
   EQUIPMENT_LABELS,
 } from '../constants.ts'
 import { useFilterParams, useUrlBackedText } from '../utils/useFilterParams.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 type CategoryFilter = ExerciseCategory | 'all'
 type EquipmentFilter = Equipment | 'all'
@@ -37,9 +39,7 @@ export function ExercisesPage() {
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   // 새로 만든 운동으로 자동 스크롤 (목록에서 생성 후 복귀 시)
   useEffect(() => {
@@ -124,7 +124,9 @@ export function ExercisesPage() {
         )}
       </div>
 
-      {loading ? (
+      {loadError ? (
+        <LoadError onRetry={retry} />
+      ) : loading ? (
         <p className="page__placeholder">불러오는 중...</p>
       ) : visible.length === 0 ? (
         <div className="empty">

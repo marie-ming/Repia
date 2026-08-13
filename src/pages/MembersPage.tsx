@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { membersRepo } from '../db/repositories/members.ts'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
@@ -8,6 +8,8 @@ import type { MemberFormData } from '../components/MemberFormSheet.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { PlusIcon, SearchIcon } from '../components/icons.tsx'
 import { useFilterParams, useUrlBackedText } from '../utils/useFilterParams.ts'
+import { LoadError } from '../components/LoadError.tsx'
+import { useLoader } from '../utils/useLoader.ts'
 
 interface MemberRow {
   member: Member
@@ -51,9 +53,7 @@ export function MembersPage() {
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const { error: loadError, retry } = useLoader(load)
 
   const hasEnded = useMemo(() => rows.some((r) => r.member.status === 'ended'), [rows])
 
@@ -116,7 +116,9 @@ export function MembersPage() {
         )}
       </div>
 
-      {loading ? (
+      {loadError ? (
+        <LoadError onRetry={retry} />
+      ) : loading ? (
         <p className="page__placeholder">불러오는 중...</p>
       ) : visibleRows.length === 0 ? (
         <div className="empty">
