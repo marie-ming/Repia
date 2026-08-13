@@ -5,6 +5,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { MembersPage } from './MembersPage.tsx'
 import { PersonalHomePage } from './PersonalHomePage.tsx'
 import { RoutineLogFormPage } from './RoutineLogFormPage.tsx'
+import { ExerciseFormPage } from './ExerciseFormPage.tsx'
 import { ToastProvider } from '../components/Toast.tsx'
 import { ModeContext } from '../components/ModeContext.tsx'
 import { membersRepo } from '../db/repositories/members.ts'
@@ -107,3 +108,22 @@ describe('기록 작성 화면에서 읽기 실패', () => {
     expect(screen.queryByText(/작성 중이던/)).not.toBeInTheDocument()
   })
 })
+
+describe('운동 수정 화면에서 읽기 실패', () => {
+  it('멈추지 않고 실패를 알린다', async () => {
+    vi.spyOn(exercisesRepo, 'findAll').mockRejectedValue(new Error('DB 접근 불가'))
+    render(
+      <MemoryRouter initialEntries={['/exercises/ex_1/edit']}>
+        <ToastProvider>
+          <Routes>
+            <Route path="/exercises/:id/edit" element={<ExerciseFormPage />} />
+          </Routes>
+        </ToastProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('기록을 불러오지 못했습니다.')).toBeInTheDocument()
+    expect(screen.queryByText('불러오는 중...')).not.toBeInTheDocument()
+  })
+})
+

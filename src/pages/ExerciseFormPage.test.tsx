@@ -164,3 +164,79 @@ describe('ExerciseFormPage — 어시스트 머신(보조 무게)', () => {
     expect(screen.queryByLabelText('보조 무게')).not.toBeInTheDocument()
   })
 })
+
+// 같은 운동이 둘로 갈리면 최고 기록과 향상 추적이 각각 반쪽이 된다.
+// 피커(ExercisePicker)는 이미 막고 있었는데 이 폼만 통과시켰다.
+describe('ExerciseFormPage — 이름 중복', () => {
+  it('이미 있는 이름이면 저장할 수 없다', async () => {
+    await exercisesRepo.create({ name: '벤치프레스', metric: 'weight_reps' })
+    renderForm('/exercises/new')
+
+    await userEvent.type(screen.getByPlaceholderText('운동 입력'), '벤치프레스')
+
+    expect(await screen.findByText('같은 이름의 운동이 이미 있습니다')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()
+  })
+
+  it('앞뒤 공백만 다른 것도 중복으로 본다', async () => {
+    await exercisesRepo.create({ name: '벤치프레스', metric: 'weight_reps' })
+    renderForm('/exercises/new')
+
+    await userEvent.type(screen.getByPlaceholderText('운동 입력'), '  벤치프레스  ')
+
+    expect(await screen.findByText('같은 이름의 운동이 이미 있습니다')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()
+  })
+
+  it('다른 이름이면 그대로 저장된다', async () => {
+    await exercisesRepo.create({ name: '벤치프레스', metric: 'weight_reps' })
+    renderForm('/exercises/new')
+
+    await userEvent.type(screen.getByPlaceholderText('운동 입력'), '인클라인 벤치프레스')
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '저장' })).toBeEnabled())
+    expect(screen.queryByText('같은 이름의 운동이 이미 있습니다')).not.toBeInTheDocument()
+  })
+
+  it('이름을 지우면 중복 안내도 사라진다 (빈 이름은 별개 문제)', async () => {
+    await exercisesRepo.create({ name: '벤치프레스', metric: 'weight_reps' })
+    renderForm('/exercises/new')
+
+    const input = screen.getByPlaceholderText('운동 입력')
+    await userEvent.type(input, '벤치프레스')
+    await screen.findByText('같은 이름의 운동이 이미 있습니다')
+
+    await userEvent.clear(input)
+    await waitFor(() =>
+      expect(screen.queryByText('같은 이름의 운동이 이미 있습니다')).not.toBeInTheDocument(),
+    )
+  })
+
+  // 자기 자신을 중복으로 세면 이름을 안 바꾼 수정이 통째로 막힌다
+  it('수정 중인 자기 이름은 중복이 아니다', async () => {
+    const ex = await exercisesRepo.create({ name: '스쿼트', metric: 'weight_reps' })
+    renderForm(`/exercises/${ex.id}/edit`)
+    await screen.findByDisplayValue('스쿼트')
+
+    expect(screen.queryByText('같은 이름의 운동이 이미 있습니다')).not.toBeInTheDocument()
+
+    // 다른 항목을 바꿔 저장 가능한 상태로 만든다
+    await userEvent.type(screen.getByPlaceholderText(/그립/), '오버핸드')
+    await waitFor(() => expect(screen.getByRole('button', { name: '저장' })).toBeEnabled())
+  })
+
+  it('수정하면서 다른 운동의 이름으로 바꾸면 막는다', async () => {
+    await exercisesRepo.create({ name: '데드리프트', metric: 'weight_reps' })
+    const ex = await exercisesRepo.create({ name: '스쿼트', metric: 'weight_reps' })
+    renderForm(`/exercises/${ex.id}/edit`)
+    await screen.findByDisplayValue('스쿼트')
+
+    const input = screen.getByPlaceholderText('운동 입력')
+    await userEvent.clear(input)
+    await userEvent.type(input, '데드리프트')
+
+    expect(await screen.findByText('같은 이름의 운동이 이미 있습니다')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()
+  })
+})
+

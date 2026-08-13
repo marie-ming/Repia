@@ -245,3 +245,50 @@ describe('exportBackup ↔ importBackup 왕복', () => {
     expect(inDb.photos).toEqual(['data:image/jpeg;base64,xxx'])
   })
 })
+
+// toISOString()은 UTC라 한국 오전 9시 전에 백업하면 파일명이 어제로 찍혔다.
+// 앱의 다른 날짜는 전부 로컬 기준이므로 파일명만 어긋나 있었다.
+// @types/node를 넣지 않으려고 여기서만 최소한으로 선언한다.
+// 로컬(Asia/Seoul)과 CI(UTC)에서 같은 결과가 나와야 의미 있는 테스트라 TZ를 고정한다.
+declare const process: { env: Record<string, string | undefined> }
+
+describe('백업 파일 이름', () => {
+  const origTZ = process.env.TZ
+
+  afterEach(() => {
+    process.env.TZ = origTZ
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  async function captureFilename(): Promise<string> {
+    let filename = ''
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock')
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      filename = this.download
+    })
+    await exportBackup()
+    return filename
+  }
+
+  it('UTC로는 날짜가 넘어가지 않은 시각에도 로컬 날짜를 쓴다', async () => {
+    process.env.TZ = 'Asia/Seoul'
+    // 서울 8/13 오전 8시 30분 = UTC 8/12 23시 30분
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-12T23:30:00.000Z'))
+
+    expect(await captureFilename()).toBe('repia-backup-2026-08-13.json')
+  })
+
+  it('로컬과 UTC가 같은 시각에는 그대로', async () => {
+    process.env.TZ = 'Asia/Seoul'
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-13T05:00:00.000Z'))
+
+    expect(await captureFilename()).toBe('repia-backup-2026-08-13.json')
+  })
+})
+
