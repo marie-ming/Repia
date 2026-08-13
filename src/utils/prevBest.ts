@@ -28,9 +28,22 @@ export function prevBestByExercise(
 
   for (const r of current.items) {
     const ex = exercises.get(r.exerciseId)
-    const prev = earlier.find((h) => h.items.some((e) => e.exerciseId === r.exerciseId))
-    const prevSets = prev?.items.find((e) => e.exerciseId === r.exerciseId)?.sets ?? []
-    map.set(r.exerciseId, bestSet(ex?.metric ?? 'weight_reps', prevSets, ex?.assisted))
+    const metric = ex?.metric ?? 'weight_reps'
+
+    // 운동이 들어 있기만 한 기록이 아니라 "값이 실제로 채워진" 기록을 찾는다.
+    // 계획만 세워두고 건너뛴 기록(0kg × 0회)에서 멈춰버리면, 그 앞의 진짜 기록을
+    // 두고도 비교할 게 없다고 보거나 0과 비교하게 된다.
+    let prev: SetEntry | null = null
+    for (const h of earlier) {
+      const sets = h.items.find((e) => e.exerciseId === r.exerciseId)?.sets
+      if (!sets) continue
+      const best = bestSet(metric, sets, ex?.assisted)
+      if (best) {
+        prev = best
+        break
+      }
+    }
+    map.set(r.exerciseId, prev)
   }
   return map
 }
