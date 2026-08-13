@@ -50,7 +50,7 @@ describe('ExerciseHistoryPage', () => {
       exercises: [{ exerciseId: ex.id, sets: [{ weight: 200, reps: 1 }] }],
     })
     renderPage(ex.id)
-    expect(await screen.findByText('총 2회 · 최고 120kg')).toBeInTheDocument()
+    expect(await screen.findByText('총 2회 · 최고 120kg×3')).toBeInTheDocument()
     expect(screen.getByText('120kg×3')).toBeInTheDocument()
     expect(screen.getByText('100kg×5')).toBeInTheDocument()
   })

@@ -31,8 +31,8 @@ test('보조 무게: 보조가 줄면 "보조 N kg" + ▲', async ({ page }) => 
 
   await page.getByText('E2E 오늘 등').click()
   // 최대가 아니라 최소가 기록이고, 문구도 "최고"가 아닌 "보조"
-  await expect(badge(page)).toHaveText('보조 30kg')
-  await expect(delta(page)).toHaveText('▲ 지난 40kg')
+  await expect(badge(page)).toHaveText('보조 30kg×8')
+  await expect(delta(page)).toHaveText('▲ 지난 40kg×8')
 })
 
 test('보조 무게: 비워둔 세트(0)는 "보조 0kg"이 되지 않는다', async ({ page }) => {
@@ -57,7 +57,7 @@ test('보조 무게: 비워둔 세트(0)는 "보조 0kg"이 되지 않는다', a
   await page.getByRole('button', { name: '저장' }).click()
 
   await page.getByText('E2E 빈세트').click()
-  await expect(badge(page)).toHaveText('보조 35kg')
+  await expect(badge(page)).toHaveText('보조 35kg×8')
 })
 
 test('거리 + 시간: 같은 거리를 더 빨리 뛰면 ▲', async ({ page }) => {
@@ -104,3 +104,61 @@ test('거리 + 시간: 페이스가 느려져도 더 멀리 뛰면 ▲', async (
   await expect(badge(page)).toHaveText('최고 5km 30:00')
   await expect(delta(page)).toHaveText('▲ 지난 3km 15:00')
 })
+
+// 같은 무게로 횟수를 늘리는 건 흔한 향상인데, 예전에는 무게만 봐서 아무 신호가 없었다.
+test('무게가 같고 횟수만 늘어도 ▲', async ({ page }) => {
+  await gotoPersonalHome(page)
+  await addExercise(page, 'E2E 컬')
+
+  await createCompletedLog(page, {
+    title: 'E2E 지난 팔',
+    time: '08:00',
+    exercise: 'E2E 컬',
+    inputs: ['20', '8'],
+  })
+  await createCompletedLog(page, {
+    title: 'E2E 오늘 팔',
+    time: '20:00',
+    exercise: 'E2E 컬',
+    inputs: ['20', '14'],
+  })
+
+  await page.getByText('E2E 오늘 팔').click()
+  await expect(badge(page)).toHaveText('최고 20kg×14')
+  await expect(delta(page)).toHaveText('▲ 지난 20kg×8')
+})
+
+// 계획만 해두고 건너뛴 운동이 「지난 0kg」으로 잡혀 늘 ▲가 뜨던 문제
+test('값을 안 채운 기록은 건너뛰고 실제 직전 기록과 비교한다', async ({ page }) => {
+  await gotoPersonalHome(page)
+  await addExercise(page, 'E2E 스쿼트')
+
+  await createCompletedLog(page, {
+    title: 'E2E 실제로 한 날',
+    time: '08:00',
+    exercise: 'E2E 스쿼트',
+    inputs: ['60', '8'],
+  })
+  await createCompletedLog(page, {
+    title: 'E2E 건너뛴 날',
+    time: '12:00',
+    exercise: 'E2E 스쿼트',
+    inputs: ['0', '0'],
+  })
+  await createCompletedLog(page, {
+    title: 'E2E 오늘',
+    time: '20:00',
+    exercise: 'E2E 스쿼트',
+    inputs: ['70', '8'],
+  })
+
+  await page.getByText('E2E 오늘').click()
+  await expect(badge(page)).toHaveText('최고 70kg×8')
+  await expect(delta(page)).toHaveText('▲ 지난 60kg×8')
+
+  // 건너뛴 기록에는 최고 배지 자체가 없다
+  await page.goBack()
+  await page.getByText('E2E 건너뛴 날').click()
+  await expect(badge(page)).toHaveCount(0)
+})
+

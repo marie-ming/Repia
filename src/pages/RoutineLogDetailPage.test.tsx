@@ -159,22 +159,113 @@ describe('RoutineLogDetailPage', () => {
     it('보조가 줄면 "보조" 배지 + ▲(향상)', async () => {
       const l = await seedTwoLogs(true, 40, 30)
       renderPage(l.id)
-      expect(await screen.findByText('보조 30kg')).toBeInTheDocument()
-      expect(screen.getByText(/▲ 지난 40kg/)).toBeInTheDocument()
+      expect(await screen.findByText('보조 30kg×8')).toBeInTheDocument()
+      expect(screen.getByText(/▲ 지난 40kg×8/)).toBeInTheDocument()
     })
 
     it('보조가 늘면 ▼(하락)', async () => {
       const l = await seedTwoLogs(true, 30, 45)
       renderPage(l.id)
-      await screen.findByText('보조 45kg')
-      expect(screen.getByText(/▼ 지난 30kg/)).toBeInTheDocument()
+      await screen.findByText('보조 45kg×8')
+      expect(screen.getByText(/▼ 지난 30kg×8/)).toBeInTheDocument()
     })
 
     it('일반 운동은 그대로 "최고" + 무게가 늘어야 ▲', async () => {
       const l = await seedTwoLogs(false, 60, 80)
       renderPage(l.id)
-      expect(await screen.findByText('최고 80kg')).toBeInTheDocument()
-      expect(screen.getByText(/▲ 지난 60kg/)).toBeInTheDocument()
+      expect(await screen.findByText('최고 80kg×8')).toBeInTheDocument()
+      expect(screen.getByText(/▲ 지난 60kg×8/)).toBeInTheDocument()
+    })
+  })
+
+  describe('무게가 같고 횟수만 늘어난 경우', () => {
+    async function seedReps(prevReps: number, curReps: number) {
+      const ex = await exercisesRepo.create({ name: `컬${Math.random()}` })
+      await routineLogsRepo.create({
+        title: '지난 기록',
+        date: '2026-06-01',
+        time: '10:00',
+        status: 'completed',
+        exercises: [{ exerciseId: ex.id, sets: [{ weight: 20, reps: prevReps }] }],
+      })
+      return routineLogsRepo.create({
+        title: '이번 기록',
+        date: '2026-06-10',
+        time: '10:00',
+        status: 'completed',
+        exercises: [{ exerciseId: ex.id, sets: [{ weight: 20, reps: curReps }] }],
+      })
+    }
+
+    it('횟수가 늘면 ▲ (예전에는 아무 신호도 없었다)', async () => {
+      const l = await seedReps(8, 14)
+      renderPage(l.id)
+      expect(await screen.findByText('최고 20kg×14')).toBeInTheDocument()
+      expect(screen.getByText(/▲ 지난 20kg×8/)).toBeInTheDocument()
+    })
+
+    it('횟수가 줄면 ▼', async () => {
+      const l = await seedReps(14, 8)
+      renderPage(l.id)
+      await screen.findByText('최고 20kg×8')
+      expect(screen.getByText(/▼ 지난 20kg×14/)).toBeInTheDocument()
+    })
+
+    it('무게·횟수가 같으면 증감 표시 없음', async () => {
+      const l = await seedReps(8, 8)
+      renderPage(l.id)
+      await screen.findByText('최고 20kg×8')
+      expect(screen.queryByText(/지난/)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('값을 안 채운 세트', () => {
+    it('빈 기록을 건너뛰고 실제 직전 기록과 비교한다', async () => {
+      const ex = await exercisesRepo.create({ name: `스쿼트${Math.random()}` })
+      // 실제로 한 기록
+      await routineLogsRepo.create({
+        title: '실제로 한 날',
+        date: '2026-06-01',
+        time: '10:00',
+        status: 'completed',
+        exercises: [{ exerciseId: ex.id, sets: [{ weight: 60, reps: 8 }] }],
+      })
+      // 계획만 하고 건너뛴 채 완료로 저장한 기록
+      await routineLogsRepo.create({
+        title: '건너뛴 날',
+        date: '2026-06-05',
+        time: '10:00',
+        status: 'completed',
+        exercises: [{ exerciseId: ex.id, sets: [{ weight: 0, reps: 0 }] }],
+      })
+      const cur = await routineLogsRepo.create({
+        title: '오늘',
+        date: '2026-06-10',
+        time: '10:00',
+        status: 'completed',
+        exercises: [{ exerciseId: ex.id, sets: [{ weight: 70, reps: 8 }] }],
+      })
+
+      renderPage(cur.id)
+
+      expect(await screen.findByText('최고 70kg×8')).toBeInTheDocument()
+      // 0kg이 아니라 실제 직전 기록과 비교해야 한다
+      expect(screen.getByText(/▲ 지난 60kg×8/)).toBeInTheDocument()
+      expect(screen.queryByText(/지난 0kg/)).not.toBeInTheDocument()
+    })
+
+    it('전부 비어 있으면 최고 배지 자체가 안 나온다', async () => {
+      const ex = await exercisesRepo.create({ name: `데드${Math.random()}` })
+      const cur = await routineLogsRepo.create({
+        title: '값 없는 기록',
+        date: '2026-06-10',
+        time: '10:00',
+        status: 'completed',
+        exercises: [{ exerciseId: ex.id, sets: [{ weight: 0, reps: 0 }] }],
+      })
+      renderPage(cur.id)
+      await screen.findByText('값 없는 기록')
+      expect(screen.queryByText(/최고/)).not.toBeInTheDocument()
     })
   })
 
