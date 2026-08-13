@@ -188,6 +188,46 @@ describe('ExerciseFormPage — 이름 중복', () => {
     expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()
   })
 
+  // 「데드리프트」와 「데드 리프트」는 같은 운동이다
+  it('중간 띄어쓰기만 다른 것도 중복으로 본다', async () => {
+    await exercisesRepo.create({ name: '데드리프트', metric: 'weight_reps' })
+    renderForm('/exercises/new')
+
+    await userEvent.type(screen.getByPlaceholderText('운동 입력'), '데드 리프트')
+
+    expect(await screen.findByText('같은 이름의 운동이 이미 있습니다')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()
+  })
+
+  it('대소문자만 다른 것도 중복으로 본다', async () => {
+    await exercisesRepo.create({ name: 'Lat Pulldown', metric: 'weight_reps' })
+    renderForm('/exercises/new')
+
+    await userEvent.type(screen.getByPlaceholderText('운동 입력'), 'lat pulldown')
+
+    expect(await screen.findByText('같은 이름의 운동이 이미 있습니다')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()
+  })
+
+  it('저장된 쪽에 띄어쓰기가 있어도 잡는다', async () => {
+    await exercisesRepo.create({ name: '벤치 프레스', metric: 'weight_reps' })
+    renderForm('/exercises/new')
+
+    await userEvent.type(screen.getByPlaceholderText('운동 입력'), '벤치프레스')
+
+    expect(await screen.findByText('같은 이름의 운동이 이미 있습니다')).toBeInTheDocument()
+  })
+
+  it('띄어쓰기를 지워도 다른 이름이면 통과한다', async () => {
+    await exercisesRepo.create({ name: '데드리프트', metric: 'weight_reps' })
+    renderForm('/exercises/new')
+
+    await userEvent.type(screen.getByPlaceholderText('운동 입력'), '루마니안 데드리프트')
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '저장' })).toBeEnabled())
+    expect(screen.queryByText('같은 이름의 운동이 이미 있습니다')).not.toBeInTheDocument()
+  })
+
   it('다른 이름이면 그대로 저장된다', async () => {
     await exercisesRepo.create({ name: '벤치프레스', metric: 'weight_reps' })
     renderForm('/exercises/new')
