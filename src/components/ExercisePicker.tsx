@@ -9,6 +9,7 @@ import {
   EXERCISE_METRIC_OPTIONS,
 } from '../constants.ts'
 import { useToast } from './Toast.tsx'
+import { isDuplicateExerciseName, normalizeExerciseName } from '../utils/exerciseName.ts'
 
 type CategoryFilter = ExerciseCategory | 'all'
 type EquipmentFilter = Equipment | 'all'
@@ -66,12 +67,14 @@ export function ExercisePicker({
   const exclude = useMemo(() => new Set(excludeIds), [excludeIds])
 
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    // 중복 판정과 같은 규칙으로 찾는다. 「데드 리프트」로 쳤을 때 「데드리프트」가
+    // 안 나오면, 만들기도 막혀 있어서(중복이므로) 아무것도 못 하는 상태가 된다.
+    const q = normalizeExerciseName(query)
     return exercises.filter((ex) => {
       if (exclude.has(ex.id)) return false
       if (category !== 'all' && !ex.categories.includes(category)) return false
       if (equipment !== 'all' && ex.equipment !== equipment) return false
-      if (q && !ex.name.toLowerCase().includes(q)) return false
+      if (q && !normalizeExerciseName(ex.name).includes(q)) return false
       return true
     })
   }, [exercises, exclude, query, category, equipment])
@@ -91,7 +94,7 @@ export function ExercisePicker({
   const canCreate =
     !!onCreateExercise &&
     createName.length > 0 &&
-    !exercises.some((e) => e.name.trim() === createName)
+    !isDuplicateExerciseName(createName, exercises)
 
   async function handleCreate() {
     if (!onCreateExercise || !createName) return

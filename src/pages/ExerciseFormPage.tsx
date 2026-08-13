@@ -13,6 +13,7 @@ import {
   EXERCISE_METRIC_LABELS,
 } from '../constants.ts'
 import { fileToResizedDataURL } from '../utils/image.ts'
+import { isDuplicateExerciseName } from '../utils/exerciseName.ts'
 import { LoadError } from '../components/LoadError.tsx'
 import { useLoader } from '../utils/useLoader.ts'
 
@@ -67,13 +68,12 @@ export function ExerciseFormPage() {
   const [confirmClose, setConfirmClose] = useState(false)
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [metricLocked, setMetricLocked] = useState(false)
-  const [otherNames, setOtherNames] = useState<string[]>([])
+  const [allExercises, setAllExercises] = useState<Exercise[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
-    // 이름 중복 확인용. 수정 중인 자기 자신은 뺀다(이름을 안 바꿔도 저장돼야 하므로).
-    const all = await exercisesRepo.findAll()
-    setOtherNames(all.filter((e) => e.id !== id).map((e) => e.name.trim()))
+    // 이름 중복 확인용
+    setAllExercises(await exercisesRepo.findAll())
 
     if (!id) return
     const ex = await exercisesRepo.findById(id)
@@ -93,9 +93,9 @@ export function ExerciseFormPage() {
   const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
 
   // 같은 운동이 둘로 갈리면 최고 기록과 향상 추적이 각각 반쪽이 된다.
-  // 피커에서 검색어로 만들 때는 이미 막고 있으니(ExercisePicker) 여기서도 똑같이 막는다.
+  // 피커(ExercisePicker)와 같은 규칙을 쓴다.
   const trimmedName = form.name.trim()
-  const isDuplicateName = trimmedName !== '' && otherNames.includes(trimmedName)
+  const isDuplicateName = isDuplicateExerciseName(form.name, allExercises, id)
 
   const canSave = trimmedName.length > 0 && !isDuplicateName && (!isEdit || isDirty)
 
