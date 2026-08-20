@@ -77,3 +77,35 @@ describe('ModeSwitchSheet', () => {
     })
   })
 })
+
+// 저장이 실패했는데 화면만 바꾸면, 다음에 열 때 아무 말 없이 원래 모드로 돌아간다
+describe('모드 전환 실패', () => {
+  it('실패하면 전환하지 않고 실패를 알린다', async () => {
+    const setMode = vi.fn(async () => {
+      throw new Error('쓰기 불가')
+    })
+    const onClose = vi.fn()
+    Setup({ mode: 'trainer', setMode, onClose })
+
+    await userEvent.click(screen.getByRole('button', { name: '개인' }))
+
+    expect(await screen.findByText(/전환 실패/)).toBeInTheDocument()
+    // 성공한 척하지 않는다
+    expect(screen.queryByText(/모드로 전환했습니다/)).not.toBeInTheDocument()
+    // 시트도 닫지 않는다 — 다시 눌러볼 수 있게
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('성공하면 전환하고 알린다', async () => {
+    const setMode = vi.fn(async () => {})
+    const onClose = vi.fn()
+    Setup({ mode: 'trainer', setMode, onClose })
+
+    await userEvent.click(screen.getByRole('button', { name: '개인' }))
+
+    expect(await screen.findByText('개인 모드로 전환했습니다')).toBeInTheDocument()
+    expect(setMode).toHaveBeenCalledWith('personal')
+    expect(onClose).toHaveBeenCalled()
+  })
+})
+
