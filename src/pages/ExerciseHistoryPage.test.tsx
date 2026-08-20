@@ -156,6 +156,54 @@ describe('기록 추이 그래프', () => {
     expect(pts[1]).toBeLessThan(pts[0])
   })
 
+  // 점이 촘촘해지면 서로 겹쳐 지저분해진다. 그 이상은 선만 남긴다.
+  it('기록이 20개 이하면 점을 찍는다', async () => {
+    const ex = await exercisesRepo.create({ name: '점적음', metric: 'weight_reps' })
+    await seed(
+      ex.id,
+      Array.from({ length: 5 }, (_, i): [string, number, number] => [
+        `2026-06-0${i + 1}`,
+        60 + i,
+        8,
+      ]),
+    )
+    renderPage(ex.id)
+    await screen.findByText('최고 무게 추이')
+    expect(document.querySelectorAll('.progress-chart__dot')).toHaveLength(5)
+  })
+
+  it('20개를 넘으면 점을 숨기고 선만 남긴다', async () => {
+    const ex = await exercisesRepo.create({ name: '점많음', metric: 'weight_reps' })
+    await seed(
+      ex.id,
+      Array.from({ length: 21 }, (_, i): [string, number, number] => [
+        `2026-06-${String(i + 1).padStart(2, '0')}`,
+        60 + i,
+        8,
+      ]),
+    )
+    renderPage(ex.id)
+    await screen.findByText('최고 무게 추이')
+
+    expect(document.querySelector('.progress-chart__line')).toBeTruthy()
+    expect(document.querySelectorAll('.progress-chart__dot')).toHaveLength(0)
+  })
+
+  it('마지막 점은 한 단계 크게 (최신 기록)', async () => {
+    const ex = await exercisesRepo.create({ name: '마지막점', metric: 'weight_reps' })
+    await seed(ex.id, [
+      ['2026-06-01', 60, 8],
+      ['2026-06-08', 70, 8],
+    ])
+    renderPage(ex.id)
+    await screen.findByText('최고 무게 추이')
+
+    const dots = [...document.querySelectorAll('.progress-chart__dot')]
+    expect(dots[dots.length - 1].getAttribute('r')).toBe('4')
+    expect(dots[0].getAttribute('r')).toBe('3')
+    expect(dots[dots.length - 1].getAttribute('class')).toContain('--last')
+  })
+
   it('값을 안 채운 기록은 점으로 찍지 않는다', async () => {
     const ex = await exercisesRepo.create({ name: '스쿼트그래프', metric: 'weight_reps' })
     await seed(ex.id, [
