@@ -194,6 +194,68 @@ button {
   }
 }
 
+// 운동별 기록 추이. 위로 갈수록 더 나은 기록(향상을 ▲로 쓰는 것과 같은 방향).
+.progress-chart {
+  padding: 0.9rem 1rem 0.7rem;
+  border-bottom: 1px solid var(--color-border);
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  &__caption {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__latest {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    white-space: nowrap;
+  }
+
+  &__svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0.4rem 0 0.2rem;
+  }
+
+  &__grid {
+    stroke: var(--color-border);
+    stroke-width: 1;
+  }
+
+  &__line {
+    fill: none;
+    stroke: var(--color-primary);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  &__dot {
+    fill: var(--color-primary);
+
+    // 최신 기록은 배경색 링을 둘러 한 단계 도드라지게
+    &--last {
+      stroke: var(--color-bg);
+      stroke-width: 2;
+    }
+  }
+
+  &__axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--color-text-secondary);
+  }
+}
+
 // 데이터를 못 읽었을 때 「불러오는 중...」 자리를 대신한다
 .load-error {
   text-align: center;
@@ -760,6 +822,12 @@ button {
   font-size: 0.9rem;
   color: var(--color-text-secondary);
   margin-bottom: 0.75rem;
+}
+
+// 이 줄은 아래 목록의 요약이므로 위(차트 구분선)와 떼고 목록 쪽에 붙인다.
+// 그래프가 없을 때(기록 1개)는 헤더 바로 아래라 기존 간격을 그대로 둔다.
+.progress-chart + .exrec-summary {
+  margin-top: 1.1rem;
 }
 
 .exrec-list {

@@ -5,7 +5,8 @@ import { routineLogsRepo } from '../db/repositories/routineLogs.ts'
 import type { Exercise, SetEntry } from '../db/types.ts'
 import { ChevronLeftIcon } from '../components/icons.tsx'
 import { formatSetShort } from '../constants.ts'
-import { bestSetLabel } from '../utils/setStats.ts'
+import { bestSet, bestSetLabel } from '../utils/setStats.ts'
+import { ProgressChart } from '../components/ProgressChart.tsx'
 import { formatShortDate } from '../utils/date.ts'
 import { LoadError } from '../components/LoadError.tsx'
 import { useLoader } from '../utils/useLoader.ts'
@@ -48,6 +49,18 @@ export function ExerciseHistoryPage() {
     return bestSetLabel(exercise.metric, allSets, exercise.assisted)
   }, [exercise, items])
 
+  // 그래프는 오래된 것 → 최신 순. 값이 안 채워진 기록은 점으로 찍을 게 없어 빠진다.
+  const chartEntries = useMemo(() => {
+    if (!exercise) return []
+    return items
+      .map((it) => ({
+        date: it.date,
+        best: bestSet(exercise.metric, it.sets, exercise.assisted),
+      }))
+      .filter((e): e is { date: string; best: SetEntry } => e.best !== null)
+      .reverse()
+  }, [exercise, items])
+
   if (loadError) {
     return <div className="detail"><LoadError onRetry={retry} /></div>
   }
@@ -74,6 +87,13 @@ export function ExerciseHistoryPage() {
           </div>
         ) : (
           <>
+            {exercise && chartEntries.length >= 2 && (
+              <ProgressChart
+                metric={exercise.metric}
+                assisted={exercise.assisted}
+                entries={chartEntries}
+              />
+            )}
             <p className="exrec-summary">
               총 {items.length}회{best ? ` · ${best}` : ''}
             </p>
