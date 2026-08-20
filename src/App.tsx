@@ -22,6 +22,8 @@ import { tabsForMode } from './navigation.tsx'
 type AppState =
   | { status: 'loading' }
   | { status: 'ready'; mode: Mode }
+  // 저장소를 못 열면 라우터도 못 띄운다 — 스플래시에 갇히지 않도록 별도 상태로 둔다
+  | { status: 'failed'; error: Error }
 
 const DEFAULT_MODE: Mode = 'personal'
 const SPLASH_MIN_MS = 1200
@@ -31,19 +33,30 @@ function App() {
 
   useEffect(() => {
     const minDelay = new Promise<void>((r) => setTimeout(r, SPLASH_MIN_MS))
-    Promise.all([appConfigRepo.getMode(), minDelay]).then(async ([stored]) => {
-      let mode = stored
-      if (!mode) {
-        await appConfigRepo.setMode(DEFAULT_MODE)
-        await appConfigRepo.set('installedAt', new Date().toISOString())
-        await appConfigRepo.set('schemaVersion', 1)
-        mode = DEFAULT_MODE
-      }
-      setState({ status: 'ready', mode })
-    })
+    Promise.all([appConfigRepo.getMode(), minDelay])
+      .then(async ([stored]) => {
+        let mode = stored
+        if (!mode) {
+          await appConfigRepo.setMode(DEFAULT_MODE)
+          await appConfigRepo.set('installedAt', new Date().toISOString())
+          await appConfigRepo.set('schemaVersion', 1)
+          mode = DEFAULT_MODE
+        }
+        setState({ status: 'ready', mode })
+      })
+      // catch가 없으면 state가 loading에 남아 스플래시에 영구히 갇힌다.
+      // 에러 바운더리도 못 잡는다 — 렌더 예외가 아니라 거부된 프라미스라서.
+      // 라우터가 뜨지 않으니 설정으로 들어가 백업을 뽑을 수도 없다.
+      .catch((e) => {
+        setState({
+          status: 'failed',
+          error: e instanceof Error ? e : new Error(String(e)),
+        })
+      })
   }, [])
 
   const changeMode = useCallback(async (next: Mode) => {
+    // 저장이 실패했는데 화면만 바꾸면, 다음에 열 때 아무 말 없이 원래 모드로 돌아간다
     await appConfigRepo.setMode(next)
     setState({ status: 'ready', mode: next })
   }, [])
@@ -56,6 +69,12 @@ function App() {
 
   if (state.status === 'loading') {
     return <Splash />
+  }
+
+  // 렌더 중에 던져 바깥 ErrorBoundary가 받게 한다.
+  // 그 화면이 이미 「백업 내려받기 / 앱 다시 시작」을 갖고 있어 여기서 다시 만들지 않는다.
+  if (state.status === 'failed') {
+    throw new Error(`저장소를 열 수 없습니다: ${state.error.message}`)
   }
 
   const tabs = tabsForMode(state.mode)

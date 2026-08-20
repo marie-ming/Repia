@@ -24,7 +24,14 @@ export function ModeSwitchSheet({ open, onClose }: ModeSwitchSheetProps) {
       onClose()
       return
     }
-    await setMode(next)
+    try {
+      await setMode(next)
+    } catch (err) {
+      // 저장이 실패했으면 전환하지 않는다. 화면만 바꾸면 다음에 열 때
+      // 아무 말 없이 원래 모드로 돌아가고, 사용자는 이유를 알 수 없다.
+      showToast(err instanceof Error ? `전환 실패: ${err.message}` : '모드를 전환하지 못했습니다')
+      return
+    }
     onClose()
     navigate('/', { replace: true })
     showToast(`${next === 'trainer' ? '트레이너' : '개인'} 모드로 전환했습니다`)
