@@ -7,6 +7,7 @@ import { ToastProvider } from '../components/Toast.tsx'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { membersRepo } from '../db/repositories/members.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
+import { sessionDraftRepo } from '../db/repositories/sessionDraft.ts'
 
 function renderForm(initialPath: string) {
   function PathProbe() {
@@ -163,3 +164,95 @@ describe('SessionFormPage — 수정', () => {
     expect(await sessionsRepo.findById(s.id)).toBeDefined() // 실제로 남아 있다
   })
 })
+
+// 기록 작성 화면에만 있던 초안을 수업에도 붙였다. 정책은 같다.
+describe('작성 중 수업 임시 저장', () => {
+  it('메모를 적으면 초안이 남는다', async () => {
+    renderForm('/sessions/new')
+    await userEvent.type(await screen.findByPlaceholderText('수업 메모'), '어깨 위주')
+
+    await waitFor(async () => {
+      expect((await sessionDraftRepo.get())?.form.memo).toBe('어깨 위주')
+    })
+  })
+
+  it('손대지 않으면 초안을 만들지 않는다', async () => {
+    renderForm('/sessions/new')
+    await screen.findByPlaceholderText('수업 메모')
+    await new Promise((r) => setTimeout(r, 700))
+    expect(await sessionDraftRepo.get()).toBeNull()
+  })
+
+  it('다시 들어오면 이어쓸지 묻고, 이어쓰면 복구된다', async () => {
+    await sessionDraftRepo.save({
+      memberId: null,
+      date: '2026-06-15',
+      time: '10:00',
+      status: 'reserved',
+      routine: [],
+      memo: '이어쓸 메모',
+    })
+
+    renderForm('/sessions/new')
+    expect(await screen.findByText('작성 중이던 수업이 있어요')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: '이어쓰기' }))
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('수업 메모')).toHaveValue('이어쓸 메모')
+    })
+  })
+
+  it('「새로 시작」을 고르면 초안이 지워진다', async () => {
+    await sessionDraftRepo.save({
+      memberId: null,
+      date: '2026-06-15',
+      time: '10:00',
+      status: 'reserved',
+      routine: [],
+      memo: '버릴 메모',
+    })
+
+    renderForm('/sessions/new')
+    await screen.findByText('작성 중이던 수업이 있어요')
+    await userEvent.click(screen.getByRole('button', { name: '새로 시작' }))
+
+    await waitFor(async () => {
+      expect(await sessionDraftRepo.get()).toBeNull()
+    })
+    expect(screen.getByPlaceholderText('수업 메모')).toHaveValue('')
+  })
+
+  it('신규는 나갈 때 경고 대신 임시 저장했다고 알린다', async () => {
+    renderForm('/sessions/new')
+    await userEvent.type(await screen.findByPlaceholderText('수업 메모'), '나가는 메모')
+
+    await userEvent.click(screen.getByLabelText('뒤로'))
+
+    expect(await screen.findByText('작성 중인 내용을 임시 저장했습니다')).toBeInTheDocument()
+    expect(screen.queryByText('닫으면 변경사항이 사라집니다.')).not.toBeInTheDocument()
+  })
+
+  it('수정 화면은 초안을 남기지 않고 경고를 쓴다', async () => {
+    const m = await membersRepo.create({ name: '홍길동', phone: '010-0000-0000' })
+    const s = await sessionsRepo.create({
+      memberId: m.id,
+      memberNameSnapshot: m.name,
+      date: '2026-06-10',
+      time: '10:00',
+      status: 'reserved',
+      routine: [],
+      memo: '기존 메모',
+    })
+
+    renderForm(`/sessions/${s.id}/edit`)
+    await screen.findByDisplayValue('기존 메모')
+
+    await userEvent.type(screen.getByPlaceholderText('수업 메모'), ' 추가')
+    await new Promise((r) => setTimeout(r, 700))
+    expect(await sessionDraftRepo.get()).toBeNull()
+
+    await userEvent.click(screen.getByLabelText('뒤로'))
+    expect(await screen.findByText('닫으면 변경사항이 사라집니다.')).toBeInTheDocument()
+  })
+})
+
