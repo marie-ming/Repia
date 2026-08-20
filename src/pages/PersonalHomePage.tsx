@@ -6,7 +6,7 @@ import type { RoutineLog, Exercise } from '../db/types.ts'
 import { Calendar } from '../components/Calendar.tsx'
 import { BottomSheet } from '../components/BottomSheet.tsx'
 import { ModeTitleButton } from '../components/ModeTitleButton.tsx'
-import { PlusIcon } from '../components/icons.tsx'
+import { ChevronRightIcon, PlusIcon } from '../components/icons.tsx'
 import {
   addDays,
   addMonths,
@@ -17,7 +17,9 @@ import {
   toISODate,
   todayISODate,
 } from '../utils/date.ts'
-import { ROUTINE_LOG_STATUS_LABELS } from '../constants.ts'
+import { EXERCISE_CATEGORY_LABELS, ROUTINE_LOG_STATUS_LABELS } from '../constants.ts'
+import { BALANCE_DAYS, categoryBalance, topCategories } from '../utils/categoryBalance.ts'
+import { CategoryBalanceSheet } from '../components/CategoryBalanceSheet.tsx'
 import { LoadError } from '../components/LoadError.tsx'
 import { useLoader } from '../utils/useLoader.ts'
 
@@ -29,18 +31,24 @@ export function PersonalHomePage() {
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [sheetDate, setSheetDate] = useState('')
   const [sheetLogs, setSheetLogs] = useState<RoutineLog[] | null>(null)
+  const [balanceOpen, setBalanceOpen] = useState(false)
+  // 부위 집계는 오늘 기준 4주라, 달을 넘겨봐도 달라지지 않는다 → 캘린더용과 따로 읽는다
+  const [recentLogs, setRecentLogs] = useState<RoutineLog[]>([])
 
   const load = useCallback(async () => {
     const gridStart = startOfWeekSunday(viewMonth)
     const start = toISODate(gridStart)
     const end = toISODate(addDays(gridStart, 41))
-    const [list, exs] = await Promise.all([
+    const balanceFrom = toISODate(addDays(parseISODate(today), -(BALANCE_DAYS - 1)))
+    const [list, exs, recent] = await Promise.all([
       routineLogsRepo.findByDateRange(start, end),
       exercisesRepo.findAll(),
+      routineLogsRepo.findByDateRange(balanceFrom, today),
     ])
     setLogs(list)
     setExercises(exs)
-  }, [viewMonth])
+    setRecentLogs(recent)
+  }, [viewMonth, today])
 
   const { error: loadError, retry } = useLoader(load)
 
@@ -49,6 +57,13 @@ export function PersonalHomePage() {
     for (const e of exercises) m.set(e.id, e.name)
     return m
   }, [exercises])
+
+  const balance = useMemo(() => {
+    const byExercise = new Map(exercises.map((e) => [e.id, e.categories]))
+    return categoryBalance(recentLogs, byExercise, today)
+  }, [recentLogs, exercises, today])
+
+  const balanceTop = useMemo(() => topCategories(balance.counts), [balance])
 
   const markedCounts = useMemo(() => {
     const m = new Map<string, number>()
@@ -104,6 +119,20 @@ export function PersonalHomePage() {
           onToday={goToday}
         />
       </div>
+
+      {/* 기록이 아예 없으면 보여줄 게 없다 — 빈 앱에 잔소리하지 않는다 */}
+      {balance.total > 0 && (
+        <button type="button" className="balance-bar" onClick={() => setBalanceOpen(true)}>
+          <span className="balance-bar__text">
+            최근 {BALANCE_DAYS / 7}주 <strong>{balance.total}회</strong>
+            {balanceTop.length > 0 &&
+              ` · ${balanceTop
+                .map((c) => `${EXERCISE_CATEGORY_LABELS[c.category]} ${c.count}`)
+                .join(' ')}`}
+          </span>
+          <ChevronRightIcon className="balance-bar__chevron" />
+        </button>
+      )}
 
       <div className="day-sessions">
         {/* 못 읽은 걸 「기록이 없습니다」로 보여주면 없는 것과 구분이 안 된다 */}
@@ -186,6 +215,12 @@ export function PersonalHomePage() {
           ))}
         </ul>
       </BottomSheet>
+
+      <CategoryBalanceSheet
+        open={balanceOpen}
+        onClose={() => setBalanceOpen(false)}
+        balance={balance}
+      />
     </div>
   )
 }
