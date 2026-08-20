@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
 import type { Session, Exercise, SetEntry } from '../db/types.ts'
-import { ChevronLeftIcon, MoreIcon, PencilIcon, ShareIcon } from '../components/icons.tsx'
+import { CheckIcon, ChevronLeftIcon, MoreIcon, PencilIcon, ShareIcon } from '../components/icons.tsx'
 import { BottomSheet } from '../components/BottomSheet.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { SESSION_STATUS_LABELS } from '../constants.ts'
@@ -14,6 +14,7 @@ import { prevBestByExercise } from '../utils/prevBest.ts'
 import { generateWorkoutShareImage } from '../utils/shareImage.ts'
 import { LoadError } from '../components/LoadError.tsx'
 import { useLoader } from '../utils/useLoader.ts'
+import { statusToggle } from '../utils/statusToggle.ts'
 
 export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -45,6 +46,19 @@ export function SessionDetailPage() {
   }, [session, memberSessions, exMap])
 
   const { error: loadError, retry } = useLoader(load)
+
+  async function handleToggleStatus() {
+    if (!session) return
+    const action = statusToggle(session.status, 'completed', 'reserved', '예약')
+    setMenuOpen(false)
+    try {
+      await sessionsRepo.update(session.id, { status: action.next })
+      showToast(action.done)
+      await load()
+    } catch (err) {
+      showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
+    }
+  }
 
   async function handleShare() {
     if (!session) return
@@ -96,6 +110,8 @@ export function SessionDetailPage() {
       </div>
     )
   }
+
+  const statusAction = statusToggle(session.status, 'completed', 'reserved', '예약')
 
   return (
     <div className="detail">
@@ -161,6 +177,17 @@ export function SessionDetailPage() {
 
       <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} title={session.memberNameSnapshot}>
         <ul className="action-menu">
+          {/* 매번 하는 동작이라 수정 화면까지 들어가지 않고 여기서 바꾼다 */}
+          <li>
+            <button
+              type="button"
+              className={`action-menu__item action-menu__item--${statusAction.tone}`}
+              onClick={handleToggleStatus}
+            >
+              <CheckIcon className="action-menu__icon" />
+              {statusAction.label}
+            </button>
+          </li>
           <li>
             <button
               type="button"

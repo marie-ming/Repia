@@ -11,6 +11,9 @@
   --color-text: #eaeaea;
   --color-text-secondary: #9aa0b0;
   --color-border: #2a2a4a;
+  // 상태 색. 배지와 액션 메뉴가 같은 값을 봐야 「누르면 어떤 상태가 되는지」가 읽힌다
+  --color-status-completed: #4fc78a;
+  --color-status-planned: #6ba3e8;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -1035,6 +1038,15 @@ button {
     &--danger {
       color: var(--color-primary);
     }
+
+    // 바뀔 상태의 배지 색을 그대로 쓴다 (아이콘 색은 아래에서 따라오게 한다)
+    &--completed {
+      color: var(--color-status-completed);
+    }
+
+    &--planned {
+      color: var(--color-status-planned);
+    }
   }
 
   &__icon {
@@ -1044,8 +1056,12 @@ button {
     color: var(--color-text-secondary);
   }
 
-  &__item--danger &__icon {
-    color: var(--color-primary);
+  // 색이 붙은 항목은 아이콘도 글자 색을 따라간다.
+  // 기본 아이콘은 회색이라 물려받게 하려면 이렇게 되돌려줘야 한다.
+  &__item--danger &__icon,
+  &__item--completed &__icon,
+  &__item--planned &__icon {
+    color: inherit;
   }
 }
 
@@ -2371,12 +2387,12 @@ input[type='time'][data-empty='true']::-webkit-datetime-edit {
   &--reserved,
   &--planned {
     background: rgba(58, 123, 213, 0.18);
-    color: #6ba3e8;
+    color: var(--color-status-planned);
   }
 
   &--completed {
     background: rgba(46, 160, 110, 0.18);
-    color: #4fc78a;
+    color: var(--color-status-completed);
   }
 
   &--cancelled {
