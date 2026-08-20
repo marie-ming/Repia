@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { SessionDetailPage } from './SessionDetailPage.tsx'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
+import { ToastProvider } from '../components/Toast.tsx'
 
 function renderPage(id: string) {
   function PathProbe() {
@@ -13,10 +14,12 @@ function renderPage(id: string) {
   }
   return render(
     <MemoryRouter initialEntries={[`/sessions/${id}`]}>
-      <Routes>
-        <Route path="/sessions/:id" element={<SessionDetailPage />} />
-        <Route path="*" element={<PathProbe />} />
-      </Routes>
+      <ToastProvider>
+        <Routes>
+          <Route path="/sessions/:id" element={<SessionDetailPage />} />
+          <Route path="*" element={<PathProbe />} />
+        </Routes>
+      </ToastProvider>
     </MemoryRouter>,
   )
 }
@@ -214,3 +217,58 @@ describe('SessionDetailPage', () => {
     })
   })
 })
+
+// 기록 상세와 같은 동작. 수업은 완료 앞 상태가 「예약」이라 문구가 다르다.
+describe('상세에서 수업 상태 바꾸기', () => {
+  async function seedReserved() {
+    const ex = await exercisesRepo.create({ name: `수업상태${Math.random()}` })
+    return sessionsRepo.create({
+      memberId: 'm1',
+      memberNameSnapshot: '홍길동',
+      date: '2026-06-10',
+      time: '10:00',
+      status: 'reserved',
+      routine: [{ exerciseId: ex.id, sets: [{ weight: 60, reps: 8 }] }],
+    })
+  }
+
+  it('예약이면 「완료로 표시」, 누르면 저장된다', async () => {
+    const s = await seedReserved()
+    renderPage(s.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    await userEvent.click(screen.getByRole('button', { name: '완료로 표시' }))
+
+    expect(await screen.findByText('완료로 표시했습니다')).toBeInTheDocument()
+    await waitFor(async () => {
+      expect((await sessionsRepo.findById(s.id))?.status).toBe('completed')
+    })
+  })
+
+  it('완료면 「예약으로 되돌리기」', async () => {
+    const ex = await exercisesRepo.create({ name: `수업상태2${Math.random()}` })
+    const s = await sessionsRepo.create({
+      memberId: 'm1',
+      memberNameSnapshot: '홍길동',
+      date: '2026-06-09',
+      status: 'completed',
+      routine: [{ exerciseId: ex.id, sets: [{ weight: 60, reps: 8 }] }],
+    })
+    renderPage(s.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+
+    expect(screen.getByRole('button', { name: '예약으로 되돌리기' })).toBeInTheDocument()
+  })
+
+  it('저장이 실패하면 성공한 척하지 않는다', async () => {
+    const s = await seedReserved()
+    vi.spyOn(sessionsRepo, 'update').mockRejectedValue(new Error('실패'))
+
+    renderPage(s.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    await userEvent.click(screen.getByRole('button', { name: '완료로 표시' }))
+
+    expect(await screen.findByText(/저장 실패/)).toBeInTheDocument()
+    vi.restoreAllMocks()
+  })
+})
+
