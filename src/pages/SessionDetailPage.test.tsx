@@ -174,28 +174,28 @@ describe('SessionDetailPage', () => {
     it('무게가 늘면 "최고" 배지 + ▲', async () => {
       const s = await seedTwoSessions(60, 80)
       renderPage(s.id)
-      expect(await screen.findByText('최고 80kg')).toBeInTheDocument()
-      expect(screen.getByText(/▲ 지난 60kg/)).toBeInTheDocument()
+      expect(await screen.findByText('최고 80kg×8')).toBeInTheDocument()
+      expect(screen.getByText(/▲ 지난 60kg×8/)).toBeInTheDocument()
     })
 
     it('무게가 줄면 ▼', async () => {
       const s = await seedTwoSessions(80, 60)
       renderPage(s.id)
-      await screen.findByText('최고 60kg')
-      expect(screen.getByText(/▼ 지난 80kg/)).toBeInTheDocument()
+      await screen.findByText('최고 60kg×8')
+      expect(screen.getByText(/▼ 지난 80kg×8/)).toBeInTheDocument()
     })
 
     it('보조 무게 운동은 보조가 줄어야 ▲', async () => {
       const s = await seedTwoSessions(40, 30, { assisted: true })
       renderPage(s.id)
-      expect(await screen.findByText('보조 30kg')).toBeInTheDocument()
-      expect(screen.getByText(/▲ 지난 40kg/)).toBeInTheDocument()
+      expect(await screen.findByText('보조 30kg×8')).toBeInTheDocument()
+      expect(screen.getByText(/▲ 지난 40kg×8/)).toBeInTheDocument()
     })
 
     it('다른 회원의 수업과는 비교하지 않는다', async () => {
       const s = await seedTwoSessions(60, 80, { prevMemberId: 'm2' })
       renderPage(s.id)
-      expect(await screen.findByText('최고 80kg')).toBeInTheDocument()
+      expect(await screen.findByText('최고 80kg×8')).toBeInTheDocument()
       expect(screen.queryByText(/지난/)).not.toBeInTheDocument()
     })
 
@@ -209,7 +209,7 @@ describe('SessionDetailPage', () => {
         routine: [{ exerciseId: ex.id, sets: [{ weight: 50, reps: 10 }] }],
       })
       renderPage(s.id)
-      expect(await screen.findByText('최고 50kg')).toBeInTheDocument()
+      expect(await screen.findByText('최고 50kg×10')).toBeInTheDocument()
       expect(screen.queryByText(/지난/)).not.toBeInTheDocument()
     })
   })

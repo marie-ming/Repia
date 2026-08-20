@@ -26,6 +26,7 @@ import { formatShortDate } from '../utils/date.ts'
 import { generateExerciseShareImage } from '../utils/shareImage.ts'
 import { LoadError } from '../components/LoadError.tsx'
 import { useLoader } from '../utils/useLoader.ts'
+import { isRecordedSet } from '../utils/setStats.ts'
 
 interface RecentItem {
   id: string
@@ -78,16 +79,28 @@ export function ExerciseDetailPage() {
     // 최근 기록은 개인 모드에서만 (운동 진척 추적 용도)
     if (mode === 'personal') {
       const logs = await routineLogsRepo.findAll()
+      const metric = ex?.metric ?? 'weight_reps'
       const matched = logs
-        .filter((l) => l.status === 'completed' && l.exercises.some((r) => r.exerciseId === id))
-        .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
+        .filter((l) => l.status === 'completed')
+        .map((l) => ({
+          log: l,
+          // 값을 안 채운 세트는 기록이 아니다. 계획만 해두고 건너뛴 운동이
+          // 「0kg×0」으로 목록에 남던 것을 여기서 걸러낸다.
+          sets: (l.exercises.find((r) => r.exerciseId === id)?.sets ?? []).filter((s) =>
+            isRecordedSet(metric, s, ex?.assisted),
+          ),
+        }))
+        .filter((m) => m.sets.length > 0)
+        .sort((a, b) =>
+          (b.log.date + b.log.time).localeCompare(a.log.date + a.log.time),
+        )
       setRecentTotal(matched.length)
       setRecent(
-        matched.slice(0, RECENT_LIMIT).map((l) => ({
-          id: l.id,
-          date: l.date,
-          sets: l.exercises.find((r) => r.exerciseId === id)?.sets ?? [],
-          to: `/logs/${l.id}`,
+        matched.slice(0, RECENT_LIMIT).map((m) => ({
+          id: m.log.id,
+          date: m.log.date,
+          sets: m.sets,
+          to: `/logs/${m.log.id}`,
         })),
       )
     }

@@ -194,6 +194,162 @@ button {
   }
 }
 
+// 캘린더의 아래 여백(1.25rem)은 바로 기록 목록이 오는 경우에 맞춰둔 값이다.
+// 요약줄이 끼면 그 줄의 위 여백과 겹쳐 빈 공간이 두 배로 벌어진다 — 그때만 좁힌다.
+// (트레이너 홈은 요약줄이 없으므로 그대로)
+.home-page__top:has(+ .balance-bar) .calendar {
+  margin-bottom: 0.25rem;
+}
+
+// 최근 4주 부위 요약 — 캘린더와 기록 목록 사이 한 줄
+.balance-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  // 좌우는 페이지 여백(캘린더·기록 카드와 같은 1.25rem)에 맞춘다
+  padding: 0.7rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  // .day-sessions의 위 여백이 0.25rem뿐이라 구분선에 카드가 붙는다. 여기서 벌린다.
+  margin-bottom: 0.5rem;
+  text-align: left;
+
+  &__text {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    min-width: 0;
+    // 부위가 많아도 한 줄로 — 넘치면 잘라낸다(상세는 시트에서 본다)
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    strong {
+      color: var(--color-text);
+      font-weight: 600;
+    }
+  }
+
+  &__chevron {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    color: var(--color-text-secondary);
+  }
+}
+
+.balance-list {
+  list-style: none;
+  // 시트 안의 목록 관례와 같게 — 제목 위 여백과 균형을 맞추고 safe-area를 더한다
+  // (없으면 마지막 줄이 시트 바닥에, 실기기에서는 홈 인디케이터에 붙는다)
+  padding-bottom: calc(1.25rem + var(--safe-bottom));
+}
+
+.balance-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.32rem 0;
+
+  &__name {
+    // 「유산소」가 딱 들어차는 폭이라 여유를 조금 준다
+    width: 2.9rem;
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__track {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+  }
+
+  &__bar {
+    height: 0.45rem;
+    border-radius: 0.25rem;
+    background: var(--color-primary);
+
+    &--none {
+      background: var(--color-border);
+    }
+  }
+
+  &__count {
+    width: 1.2rem;
+    flex-shrink: 0;
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--color-text);
+
+    &--none {
+      color: var(--color-text-secondary);
+    }
+  }
+}
+
+// 운동별 기록 추이. 위로 갈수록 더 나은 기록(향상을 ▲로 쓰는 것과 같은 방향).
+.progress-chart {
+  padding: 0.9rem 1rem 0.7rem;
+  border-bottom: 1px solid var(--color-border);
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  &__caption {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__latest {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    white-space: nowrap;
+  }
+
+  &__svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0.4rem 0 0.2rem;
+  }
+
+  &__grid {
+    stroke: var(--color-border);
+    stroke-width: 1;
+  }
+
+  &__line {
+    fill: none;
+    stroke: var(--color-primary);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  &__dot {
+    fill: var(--color-primary);
+
+    // 최신 기록은 배경색 링을 둘러 한 단계 도드라지게
+    &--last {
+      stroke: var(--color-bg);
+      stroke-width: 2;
+    }
+  }
+
+  &__axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--color-text-secondary);
+  }
+}
+
 // 데이터를 못 읽었을 때 「불러오는 중...」 자리를 대신한다
 .load-error {
   text-align: center;
@@ -760,6 +916,12 @@ button {
   font-size: 0.9rem;
   color: var(--color-text-secondary);
   margin-bottom: 0.75rem;
+}
+
+// 이 줄은 아래 목록의 요약이므로 위(차트 구분선)와 떼고 목록 쪽에 붙인다.
+// 그래프가 없을 때(기록 1개)는 헤더 바로 아래라 기존 간격을 그대로 둔다.
+.progress-chart + .exrec-summary {
+  margin-top: 1.1rem;
 }
 
 .exrec-list {

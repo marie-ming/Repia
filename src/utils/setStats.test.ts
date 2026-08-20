@@ -7,6 +7,7 @@ import {
   isImprovedSet,
   isSameRecord,
   isAssistedWeight,
+  isRecordedSet,
 } from './setStats.ts'
 
 const w = (weight: number, reps = 8): SetEntry => ({ weight, reps })
@@ -111,7 +112,7 @@ describe('isAssistedWeight', () => {
 
 describe('formatBestSet', () => {
   it('측정 방식별 단위', () => {
-    expect(formatBestSet('weight_reps', w(80))).toBe('80kg')
+    expect(formatBestSet('weight_reps', w(80))).toBe('80kg×8')
     expect(formatBestSet('reps', rep(12))).toBe('12회')
     expect(formatBestSet('time', sec(90))).toBe('1:30')
   })
@@ -131,14 +132,14 @@ describe('bestSetLabel', () => {
   })
 
   it('무게·횟수는 "최고", 시간·거리는 "최장"', () => {
-    expect(bestSetLabel('weight_reps', [w(80), w(120)])).toBe('최고 120kg')
+    expect(bestSetLabel('weight_reps', [w(80), w(120)])).toBe('최고 120kg×8')
     expect(bestSetLabel('reps', [rep(12), rep(20)])).toBe('최고 20회')
     expect(bestSetLabel('time', [sec(45), sec(90)])).toBe('최장 1:30')
     expect(bestSetLabel('distance_time', [dt(3, 900), dt(5, 1800)])).toBe('최장 5km 30:00')
   })
 
   it('어시스트는 "보조" + 최소값', () => {
-    expect(bestSetLabel('weight_reps', [w(40), w(30)], true)).toBe('보조 30kg')
+    expect(bestSetLabel('weight_reps', [w(40), w(30)], true)).toBe('보조 30kg×8')
   })
 
   it('어시스트에서 전부 비어 있으면 null', () => {
@@ -149,3 +150,89 @@ describe('bestSetLabel', () => {
     expect(bestSetLabel('reps', [rep(12), rep(20)], true)).toBe('최고 20회')
   })
 })
+
+// 「무게 우선, 같으면 더 많은 횟수」 — distance_time의 「거리 우선, 같으면 시간」과 같은 규칙.
+// 같은 무게로 8회 → 14회는 명백한 향상인데 무게만 보면 아무 신호가 안 떴다.
+describe('무게가 같을 때는 횟수로 가른다', () => {
+  it('같은 무게면 횟수가 많은 쪽이 최고', () => {
+    expect(bestSet('weight_reps', [w(20, 8), w(20, 14)])).toEqual(w(20, 14))
+    expect(bestSet('weight_reps', [w(20, 14), w(20, 8)])).toEqual(w(20, 14))
+  })
+
+  it('무게가 다르면 여전히 무게가 우선', () => {
+    expect(bestSet('weight_reps', [w(20, 20), w(30, 1)])).toEqual(w(30, 1))
+  })
+
+  it('같은 무게로 횟수를 늘리면 향상', () => {
+    expect(isImprovedSet('weight_reps', w(20, 14), w(20, 8))).toBe(true)
+    expect(isImprovedSet('weight_reps', w(20, 8), w(20, 14))).toBe(false)
+  })
+
+  it('무게·횟수가 모두 같아야 동일 기록', () => {
+    expect(isSameRecord('weight_reps', w(20, 8), w(20, 8))).toBe(true)
+    expect(isSameRecord('weight_reps', w(20, 8), w(20, 14))).toBe(false)
+  })
+
+  // 맨몸 운동을 weight_reps로 적으면 무게가 계속 0이라 향상이 영영 안 잡혔다
+  it('무게가 0인 맨몸 운동도 횟수로 향상이 잡힌다', () => {
+    expect(isImprovedSet('weight_reps', w(0, 12), w(0, 8))).toBe(true)
+    expect(bestSet('weight_reps', [w(0, 8), w(0, 12)])).toEqual(w(0, 12))
+  })
+
+  it('보조 무게도 보조가 같으면 횟수가 많은 쪽', () => {
+    expect(bestSet('weight_reps', [w(30, 8), w(30, 12)], true)).toEqual(w(30, 12))
+    expect(isImprovedSet('weight_reps', w(30, 12), w(30, 8), true)).toBe(true)
+    // 보조가 적은 쪽이 우선인 건 그대로
+    expect(bestSet('weight_reps', [w(30, 1), w(40, 20)], true)).toEqual(w(30, 1))
+  })
+})
+
+// 계획만 세워두고 건너뛴 운동이 `0kg × 0회`로 남아 최고·지난 기록으로 잡히면,
+// 다음에 그 운동을 할 때 실제 직전 기록을 건너뛰고 0과 비교해 늘 ▲가 떴다.
+describe('isRecordedSet — 값이 안 들어간 세트는 기록이 아니다', () => {
+  it('무게·횟수 둘 다 0이면 기록이 아니다', () => {
+    expect(isRecordedSet('weight_reps', w(0, 0))).toBe(false)
+  })
+
+  it('맨몸 운동(0kg)이라도 횟수가 있으면 기록이다', () => {
+    expect(isRecordedSet('weight_reps', w(0, 10))).toBe(true)
+  })
+
+  it('횟수를 안 적었어도 무게가 있으면 기록이다', () => {
+    expect(isRecordedSet('weight_reps', w(60, 0))).toBe(true)
+  })
+
+  it('측정 방식별 판단', () => {
+    expect(isRecordedSet('reps', rep(0))).toBe(false)
+    expect(isRecordedSet('reps', rep(10))).toBe(true)
+    expect(isRecordedSet('time', sec(0))).toBe(false)
+    expect(isRecordedSet('time', sec(30))).toBe(true)
+    expect(isRecordedSet('distance_time', dt(0, 0))).toBe(false)
+    expect(isRecordedSet('distance_time', dt(5, 0))).toBe(true)
+    expect(isRecordedSet('distance_time', dt(0, 600))).toBe(true)
+  })
+
+  it('보조 무게는 0이 미입력이다 (맨몸과 다르다)', () => {
+    expect(isRecordedSet('weight_reps', w(0, 10), true)).toBe(false)
+    expect(isRecordedSet('weight_reps', w(30, 10), true)).toBe(true)
+  })
+
+  it('빈 세트는 최고 기록 후보에서 빠진다', () => {
+    expect(bestSet('weight_reps', [w(0, 0)])).toBeNull()
+    expect(bestSet('weight_reps', [w(0, 0), w(60, 8)])).toEqual(w(60, 8))
+    expect(bestSetLabel('weight_reps', [w(0, 0), w(0, 0)])).toBeNull()
+  })
+})
+
+describe('formatBestSet — 무게와 횟수를 함께', () => {
+  it('무게가 있으면 무게×횟수', () => {
+    expect(formatBestSet('weight_reps', w(20, 14))).toBe('20kg×14')
+  })
+
+  // 「0kg×12」의 0kg은 군더더기다
+  it('맨몸(0kg)은 횟수만', () => {
+    expect(formatBestSet('weight_reps', w(0, 12))).toBe('12회')
+    expect(bestSetLabel('weight_reps', [w(0, 8), w(0, 12)])).toBe('최고 12회')
+  })
+})
+
