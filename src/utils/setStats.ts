@@ -36,6 +36,19 @@ export function isRecordedSet(
   }
 }
 
+// 값이 안 채워진 세트를 걷어낸 항목 목록.
+// 운동 이름은 남긴다 — 계획만 세워둔 기록을 공유하는 경우 목록이 통째로 비어버린다.
+export function withRecordedSetsOnly<T extends { exerciseId: string; sets: SetEntry[] }>(
+  items: T[],
+  exercises: Map<string, { metric: ExerciseMetric; assisted?: boolean }>,
+): T[] {
+  return items.map((item) => {
+    const ex = exercises.get(item.exerciseId)
+    const metric = ex?.metric ?? 'weight_reps'
+    return { ...item, sets: item.sets.filter((s) => isRecordedSet(metric, s, ex?.assisted)) }
+  })
+}
+
 // a가 b보다 나은 기록인가
 function isBetterSet(
   metric: ExerciseMetric,

@@ -1,5 +1,6 @@
 import type { Exercise, RoutineExercise, ExerciseMetric, SetEntry } from '../db/types.ts'
 import { toBlocks, isSuperset, roundCount } from './routineGroups.ts'
+import { withRecordedSetsOnly } from './setStats.ts'
 import {
   EXERCISE_CATEGORY_LABELS,
   EQUIPMENT_LABELS,
@@ -302,10 +303,17 @@ export async function generateWorkoutShareImage(
   data: WorkoutShareData,
   exercises: Exercise[],
 ): Promise<Blob> {
-  const log = data
   await fontsReady()
 
   const byId = new Map(exercises.map((e) => [e.id, e]))
+
+  // 값을 안 채운 세트는 기록이 아니다. 편집 화면에는 그대로 두지만, 남에게 보내는
+  // 이미지에 「0kg×0」이 찍히면 버그처럼 보인다.
+  // 걸러낸 결과로 배치·그리기·라운드 수를 모두 계산해야 서로 어긋나지 않는다.
+  const log: WorkoutShareData = {
+    ...data,
+    items: withRecordedSetsOnly(data.items, byId),
+  }
   const m = document.createElement('canvas').getContext('2d')!
   const contentW = W - PAD * 2
 
