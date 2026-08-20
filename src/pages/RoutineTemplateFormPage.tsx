@@ -2,7 +2,6 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type {
   RoutineTemplate,
-  RoutineExercise,
   RoutineLog,
   SetEntry,
   Exercise,
@@ -19,15 +18,15 @@ import { ChevronLeftIcon } from '../components/icons.tsx'
 import { EXERCISE_CATEGORY_OPTIONS } from '../constants.ts'
 import { LoadError } from '../components/LoadError.tsx'
 import { useLoader } from '../utils/useLoader.ts'
+import {
+  routineTemplateDraftRepo,
+  type RoutineTemplateDraftForm,
+} from '../db/repositories/routineTemplateDraft.ts'
+import { useFormDraft } from '../utils/useFormDraft.ts'
 
 const MAX_CATEGORIES = 3
 
-interface FormData {
-  title: string
-  categories: ExerciseCategory[]
-  exercises: RoutineExercise[]
-  memo: string
-}
+type FormData = RoutineTemplateDraftForm
 
 function emptyForm(): FormData {
   return { title: '', categories: [], exercises: [], memo: '' }
@@ -50,6 +49,19 @@ export function RoutineTemplateFormPage() {
   const [history, setHistory] = useState<RoutineLog[]>([])
   const [template, setTemplate] = useState<RoutineTemplate | null>(null)
   const [confirmClose, setConfirmClose] = useState(false)
+  // 신규 작성만 초안을 남긴다. 수정은 원본이 있어 무엇을 보여줄지 애매해진다.
+  const draftEnabled = !isEdit
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
+
+  const draft = useFormDraft({
+    repo: routineTemplateDraftRepo,
+    enabled: draftEnabled,
+    loaded,
+    form,
+    isDirty,
+  })
+  const { checkPending } = draft
 
   const load = useCallback(async () => {
     const [exs, allLogs] = await Promise.all([
@@ -67,12 +79,12 @@ export function RoutineTemplateFormPage() {
         setTemplate(t)
       }
     }
+    await checkPending()
     setLoaded(true)
-  }, [id, isEdit])
+  }, [id, isEdit, checkPending])
 
   const { error: loadError, retry } = useLoader(load)
 
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
   const canSave = form.title.trim().length > 0 && (!isEdit || isDirty)
 
   // 운동별 가장 최근 기록의 세트 구성 (취소 제외)
@@ -125,15 +137,27 @@ export function RoutineTemplateFormPage() {
         await routineTemplatesRepo.create(input)
         showToast('루틴이 추가되었습니다')
       }
+      // 저장됐으니 초안은 더 필요 없다 (실패 시에는 남겨둔다)
+      await draft.clear()
       navigate(-1)
     } catch (err) {
       showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
     }
   }
 
-  function handleBack() {
-    if (isDirty) setConfirmClose(true)
-    else navigate(-1)
+  async function handleBack() {
+    if (!isDirty) {
+      navigate(-1)
+      return
+    }
+    // 새 루틴은 초안이 남으므로 「사라집니다」 경고가 거짓이 된다
+    if (draftEnabled) {
+      await draft.saveNow()
+      showToast('작성 중인 내용을 임시 저장했습니다')
+      navigate(-1)
+      return
+    }
+    setConfirmClose(true)
   }
 
   if (loadError) {
@@ -230,6 +254,28 @@ export function RoutineTemplateFormPage() {
           </div>
         </form>
       </div>
+
+      {/* 배경 클릭으로 닫히면 초안을 잃을 수 있어 dismissible=false */}
+      <ConfirmDialog
+        open={!!draft.pending}
+        dismissible={false}
+        title="작성 중이던 루틴이 있어요"
+        message={
+          draft.pending
+            ? `${draft.pending.form.title || '제목 없음'} · 운동 ${draft.pending.form.exercises.length}개`
+            : undefined
+        }
+        confirmLabel="이어쓰기"
+        cancelLabel="새로 시작"
+        onConfirm={() => {
+          const resumed = draft.resume()
+          if (resumed) {
+            setForm(resumed)
+            initRef.current = resumed
+          }
+        }}
+        onCancel={() => draft.discard()}
+      />
 
       <ConfirmDialog
         open={confirmClose}

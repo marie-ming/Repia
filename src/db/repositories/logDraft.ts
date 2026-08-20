@@ -1,16 +1,16 @@
-import { appConfigRepo } from './appConfig.ts'
 import type { RoutineExercise, RoutineLogStatus } from '../types.ts'
+import {
+  DRAFT_EXPIRE_DAYS,
+  isDraftExpired,
+  isRoutineItems,
+  makeDraftRepo,
+  type FormDraft,
+} from './formDraft.ts'
 
-// 작성 중이던 기록을 잃지 않도록 임시 보관한다.
+// 기록 작성 화면의 초안. 공통 장치는 formDraft.ts에 있다.
 // 헬스장에서 세트를 채우다 전화가 오거나 앱이 내려가면 그대로 날아가던 문제.
-//
-// 저장 위치는 appConfig(키-값). 별도 스토어를 만들면 IndexedDB 버전을 올려야 하는데
-// 초안 하나 때문에 마이그레이션을 감수할 이유가 없다.
 
-const KEY = 'logDraft'
-
-// 오래된 초안은 사용자도 기억하지 못한다. 그 이상 묵으면 조용히 버린다.
-export const DRAFT_EXPIRE_DAYS = 7
+export { DRAFT_EXPIRE_DAYS, isDraftExpired }
 
 export interface LogDraftForm {
   title: string
@@ -22,20 +22,12 @@ export interface LogDraftForm {
   templateId: string | null
 }
 
-export interface LogDraft {
-  savedAt: string // ISO
-  form: LogDraftForm
-}
+export type LogDraft = FormDraft<LogDraftForm>
 
-// 아무것도 안 적은 폼은 초안이 아니다 (화면만 열었다 나간 경우)
 export function isDraftWorthKeeping(form: LogDraftForm): boolean {
   return form.exercises.length > 0 || form.title.trim() !== '' || form.memo.trim() !== ''
 }
 
-// 초안이 항상 이 모양이라고 믿을 수 없다. 백업 복원은 appConfig 행을 파일에 있는
-// 그대로 넣기 때문에, 손상됐거나 다른 버전이 만든 초안이 들어올 수 있다.
-// 모양이 어긋나면 읽는 쪽에서 예외가 나고, 그러면 기록 추가 화면이 초안을 지울
-// 방법도 없는 채로 멈춰버린다 — 그래서 여기서 걸러 없는 것으로 취급한다.
 export function isDraftFormShape(form: unknown): form is LogDraftForm {
   if (!form || typeof form !== 'object') return false
   const f = form as Record<string, unknown>
@@ -46,48 +38,12 @@ export function isDraftFormShape(form: unknown): form is LogDraftForm {
     typeof f.status === 'string' &&
     typeof f.memo === 'string' &&
     (f.templateId === null || typeof f.templateId === 'string') &&
-    Array.isArray(f.exercises) &&
-    f.exercises.every(
-      (r) =>
-        !!r &&
-        typeof r === 'object' &&
-        typeof (r as Record<string, unknown>).exerciseId === 'string' &&
-        Array.isArray((r as Record<string, unknown>).sets),
-    )
+    isRoutineItems(f.exercises)
   )
 }
 
-export function isDraftExpired(draft: LogDraft, now: Date = new Date()): boolean {
-  const savedAt = new Date(draft.savedAt).getTime()
-  if (Number.isNaN(savedAt)) return true // 깨진 값은 버린다
-  return now.getTime() - savedAt >= DRAFT_EXPIRE_DAYS * 86_400_000
-}
-
-export const logDraftRepo = {
-  // 만료됐거나 내용이 없으면 없는 것으로 치고 정리까지 한다
-  async get(now: Date = new Date()): Promise<LogDraft | null> {
-    const draft = await appConfigRepo.get<LogDraft>(KEY)
-    if (!draft?.form) return null
-    if (!isDraftFormShape(draft.form)) {
-      await this.clear()
-      return null
-    }
-    if (isDraftExpired(draft, now) || !isDraftWorthKeeping(draft.form)) {
-      await this.clear()
-      return null
-    }
-    return draft
-  },
-
-  async save(form: LogDraftForm): Promise<void> {
-    if (!isDraftWorthKeeping(form)) {
-      await this.clear()
-      return
-    }
-    await appConfigRepo.set(KEY, { savedAt: new Date().toISOString(), form })
-  },
-
-  async clear(): Promise<void> {
-    await appConfigRepo.set(KEY, null)
-  },
-}
+export const logDraftRepo = makeDraftRepo<LogDraftForm>({
+  key: 'logDraft',
+  isWorthKeeping: isDraftWorthKeeping,
+  isShape: isDraftFormShape,
+})
