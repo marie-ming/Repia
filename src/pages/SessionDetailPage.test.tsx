@@ -5,6 +5,7 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { SessionDetailPage } from './SessionDetailPage.tsx'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
+import { membersRepo } from '../db/repositories/members.ts'
 import { ToastProvider } from '../components/Toast.tsx'
 
 function renderPage(id: string) {
@@ -26,8 +27,9 @@ function renderPage(id: string) {
 
 describe('SessionDetailPage', () => {
   it('수업 메타 표시', async () => {
+    const m = await membersRepo.create({ name: '홍길동', phone: '010-1111-2222' })
     const s = await sessionsRepo.create({
-      memberId: 'm1',
+      memberId: m.id,
       memberNameSnapshot: '홍길동',
       date: '2026-06-10',
       time: '10:30',
@@ -129,14 +131,15 @@ describe('SessionDetailPage', () => {
   })
 
   it('회원 이름 클릭 시 /members/:memberId로 이동', async () => {
+    const m = await membersRepo.create({ name: '홍길동', phone: '010-1111-2222' })
     const s = await sessionsRepo.create({
-      memberId: 'm_42',
+      memberId: m.id,
       memberNameSnapshot: '홍길동',
       date: '2026-06-10',
     })
     renderPage(s.id)
     await userEvent.click(await screen.findByRole('button', { name: '홍길동' }))
-    expect(screen.getByTestId('loc')).toHaveTextContent('/members/m_42')
+    expect(screen.getByTestId('loc')).toHaveTextContent(`/members/${m.id}`)
   })
 
   it('없는 id: 안내 표시', async () => {
@@ -269,6 +272,35 @@ describe('상세에서 수업 상태 바꾸기', () => {
 
     expect(await screen.findByText(/저장 실패/)).toBeInTheDocument()
     vi.restoreAllMocks()
+  })
+})
+
+// 회원을 지워도 수업 기록은 남는다(이름은 스냅샷). 그때 이름을 눌러도 갈 곳이 없다.
+describe('삭제된 회원의 수업', () => {
+  it('이름을 누를 수 없게 한다', async () => {
+    const s = await sessionsRepo.create({
+      memberId: 'mem_deleted',
+      memberNameSnapshot: '지워진회원',
+      date: '2026-06-10',
+    })
+    renderPage(s.id)
+
+    // 이름은 그대로 보인다 — 그 수업이 누구 것이었는지가 기록의 일부다
+    expect(await screen.findByText('지워진회원')).toBeInTheDocument()
+    // 다만 눌러서 「회원을 찾을 수 없습니다」로 가지는 않는다
+    expect(screen.queryByRole('button', { name: '지워진회원' })).not.toBeInTheDocument()
+  })
+
+  it('회원이 있으면 여전히 누를 수 있다', async () => {
+    const m = await membersRepo.create({ name: '살아있는회원', phone: '010-3333-4444' })
+    const s = await sessionsRepo.create({
+      memberId: m.id,
+      memberNameSnapshot: '살아있는회원',
+      date: '2026-06-10',
+    })
+    renderPage(s.id)
+
+    expect(await screen.findByRole('button', { name: '살아있는회원' })).toBeInTheDocument()
   })
 })
 
