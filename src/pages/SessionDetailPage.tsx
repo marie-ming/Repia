@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
+import { membersRepo } from '../db/repositories/members.ts'
 import type { Session, Exercise, SetEntry } from '../db/types.ts'
 import { CheckIcon, ChevronLeftIcon, MoreIcon, PencilIcon, ShareIcon } from '../components/icons.tsx'
 import { BottomSheet } from '../components/BottomSheet.tsx'
@@ -25,6 +26,9 @@ export function SessionDetailPage() {
   const [memberSessions, setMemberSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
+  // 회원을 지워도 수업 기록은 남는다(이름은 스냅샷). 그때 이름을 눌러도
+  // 갈 곳이 없으므로 링크를 죽여야 한다.
+  const [memberExists, setMemberExists] = useState(true)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -33,6 +37,7 @@ export function SessionDetailPage() {
     setExercises(exs)
     // 진척 비교는 같은 회원의 지난 수업하고만 한다
     setMemberSessions(s ? await sessionsRepo.findByMember(s.memberId) : [])
+    setMemberExists(s ? !!(await membersRepo.findById(s.memberId)) : true)
     setLoading(false)
   }, [id])
 
@@ -130,13 +135,18 @@ export function SessionDetailPage() {
       </header>
 
       <div className="detail__body">
-        <button
-          type="button"
-          className="detail__title detail__title--link"
-          onClick={() => navigate(`/members/${session.memberId}`)}
-        >
-          {session.memberNameSnapshot}
-        </button>
+        {/* 지워진 회원이면 누를 수 없게 — 눌러도 「회원을 찾을 수 없습니다」로 갈 뿐이다 */}
+        {memberExists ? (
+          <button
+            type="button"
+            className="detail__title detail__title--link"
+            onClick={() => navigate(`/members/${session.memberId}`)}
+          >
+            {session.memberNameSnapshot}
+          </button>
+        ) : (
+          <h1 className="detail__title">{session.memberNameSnapshot}</h1>
+        )}
 
         <div className="session-detail__meta">
           <span className="session-detail__when">
