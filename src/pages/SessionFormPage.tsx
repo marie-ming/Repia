@@ -1,13 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import type {
-  Session,
-  SessionStatus,
-  RoutineExercise,
-  ExerciseMetric,
-  Member,
-  Exercise,
-} from '../db/types.ts'
+import type { Session, ExerciseMetric, Member, Exercise } from '../db/types.ts'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { membersRepo } from '../db/repositories/members.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
@@ -20,15 +13,11 @@ import { SESSION_STATUS_OPTIONS } from '../constants.ts'
 import { todayISODate } from '../utils/date.ts'
 import { LoadError } from '../components/LoadError.tsx'
 import { useLoader } from '../utils/useLoader.ts'
+import { sessionDraftRepo, type SessionDraftForm } from '../db/repositories/sessionDraft.ts'
+import { useFormDraft } from '../utils/useFormDraft.ts'
+import { formatDotDate } from '../utils/date.ts'
 
-interface FormData {
-  memberId: string | null
-  date: string
-  time: string
-  status: SessionStatus
-  routine: RoutineExercise[]
-  memo: string
-}
+type FormData = SessionDraftForm
 
 function emptyForm(date: string): FormData {
   return { memberId: null, date, time: '', status: 'reserved', routine: [], memo: '' }
@@ -61,6 +50,19 @@ export function SessionFormPage() {
   const [session, setSession] = useState<Session | null>(null)
   const [confirmClose, setConfirmClose] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
+  // 신규 작성만 초안을 남긴다. 수정은 원본이 있어 무엇을 보여줄지 애매해진다.
+  const draftEnabled = !isEdit
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
+
+  const draft = useFormDraft({
+    repo: sessionDraftRepo,
+    enabled: draftEnabled,
+    loaded,
+    form,
+    isDirty,
+  })
+  const { checkPending } = draft
 
   const load = useCallback(async () => {
     const [m, e] = await Promise.all([
@@ -78,12 +80,12 @@ export function SessionFormPage() {
         setSession(s)
       }
     }
+    await checkPending()
     setLoaded(true)
-  }, [id, isEdit])
+  }, [id, isEdit, checkPending])
 
   const { error: loadError, retry } = useLoader(load)
 
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initRef.current)
   const canSave = !!form.memberId && !!form.date && (!isEdit || isDirty)
 
   async function handleCreateExercise(name: string, metric: ExerciseMetric) {
@@ -113,15 +115,27 @@ export function SessionFormPage() {
         await sessionsRepo.create(input)
         showToast('수업이 추가되었습니다')
       }
+      // 저장됐으니 초안은 더 필요 없다 (실패 시에는 남겨둔다)
+      await draft.clear()
       navigate(-1)
     } catch (err) {
       showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
     }
   }
 
-  function handleBack() {
-    if (isDirty) setConfirmClose(true)
-    else navigate(-1)
+  async function handleBack() {
+    if (!isDirty) {
+      navigate(-1)
+      return
+    }
+    // 새 수업은 초안이 남으므로 「사라집니다」 경고가 거짓이 된다
+    if (draftEnabled) {
+      await draft.saveNow()
+      showToast('작성 중인 내용을 임시 저장했습니다')
+      navigate(-1)
+      return
+    }
+    setConfirmClose(true)
   }
 
   async function doDelete() {
@@ -270,6 +284,28 @@ export function SessionFormPage() {
         danger
         onConfirm={() => { setConfirmClose(false); navigate(-1) }}
         onCancel={() => setConfirmClose(false)}
+      />
+
+      {/* 배경 클릭으로 닫히면 초안을 잃을 수 있어 dismissible=false */}
+      <ConfirmDialog
+        open={!!draft.pending}
+        dismissible={false}
+        title="작성 중이던 수업이 있어요"
+        message={
+          draft.pending
+            ? `${formatDotDate(draft.pending.form.date)} · 운동 ${draft.pending.form.routine.length}개`
+            : undefined
+        }
+        confirmLabel="이어쓰기"
+        cancelLabel="새로 시작"
+        onConfirm={() => {
+          const resumed = draft.resume()
+          if (resumed) {
+            setForm(resumed)
+            initRef.current = resumed
+          }
+        }}
+        onCancel={() => draft.discard()}
       />
 
       <ConfirmDialog

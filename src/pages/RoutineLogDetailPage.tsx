@@ -8,6 +8,7 @@ import { BottomSheet } from '../components/BottomSheet.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { useToast } from '../components/Toast.tsx'
 import {
+  CheckIcon,
   ChevronLeftIcon,
   ClipboardListIcon,
   CopyIcon,
@@ -24,6 +25,7 @@ import { BestProgress } from '../components/BestProgress.tsx'
 import { prevBestByExercise } from '../utils/prevBest.ts'
 import { LoadError } from '../components/LoadError.tsx'
 import { useLoader } from '../utils/useLoader.ts'
+import { statusToggle } from '../utils/statusToggle.ts'
 
 export function RoutineLogDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -118,6 +120,19 @@ export function RoutineLogDetailPage() {
     }
   }
 
+  async function handleToggleStatus() {
+    if (!log) return
+    const action = statusToggle(log.status, 'completed', 'planned', '예정')
+    setMenuOpen(false)
+    try {
+      await routineLogsRepo.update(log.id, { status: action.next })
+      showToast(action.done)
+      await load()
+    } catch (err) {
+      showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
+    }
+  }
+
   async function handleDelete() {
     if (!log) return
     try {
@@ -156,6 +171,7 @@ export function RoutineLogDetailPage() {
   }
 
   const hasExercises = log.exercises.length > 0
+  const statusAction = statusToggle(log.status, 'completed', 'planned', '예정')
 
   return (
     <div className="detail">
@@ -232,6 +248,17 @@ export function RoutineLogDetailPage() {
         title={log.title || '운동 기록'}
       >
         <ul className="action-menu">
+          {/* 매번 하는 동작이라 수정 화면까지 들어가지 않고 여기서 바꾼다 */}
+          <li>
+            <button
+              type="button"
+              className={`action-menu__item action-menu__item--${statusAction.tone}`}
+              onClick={handleToggleStatus}
+            >
+              <CheckIcon className="action-menu__icon" />
+              {statusAction.label}
+            </button>
+          </li>
           <li>
             <button
               type="button"

@@ -321,3 +321,70 @@ describe('RoutineLogDetailPage', () => {
     })
   })
 })
+
+// 통계(최고 기록·추이 그래프·부위 요약)가 완료된 것만 세므로, 완료 표시를 잊으면
+// 방금 한 운동이 어디에도 나타나지 않는다. 그동안 수정 화면까지 들어가야 했다.
+describe('상세에서 상태 바꾸기', () => {
+  async function seedPlanned() {
+    const ex = await exercisesRepo.create({ name: `상태${Math.random()}` })
+    return routineLogsRepo.create({
+      title: '오늘 운동',
+      date: '2026-06-10',
+      time: '10:00',
+      status: 'planned',
+      exercises: [{ exerciseId: ex.id, sets: [{ weight: 60, reps: 8 }] }],
+    })
+  }
+
+  it('예정이면 메뉴에 「완료로 표시」가 있다', async () => {
+    const l = await seedPlanned()
+    renderPage(l.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    expect(screen.getByRole('button', { name: '완료로 표시' })).toBeInTheDocument()
+  })
+
+  it('누르면 완료로 저장되고 배지가 바뀐다', async () => {
+    const l = await seedPlanned()
+    renderPage(l.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    await userEvent.click(screen.getByRole('button', { name: '완료로 표시' }))
+
+    expect(await screen.findByText('완료로 표시했습니다')).toBeInTheDocument()
+    await waitFor(async () => {
+      expect((await routineLogsRepo.findById(l.id))?.status).toBe('completed')
+    })
+    expect(await screen.findByText('완료')).toBeInTheDocument()
+  })
+
+  it('완료면 「예정으로 되돌리기」로 바뀐다', async () => {
+    const ex = await exercisesRepo.create({ name: `상태2${Math.random()}` })
+    const l = await routineLogsRepo.create({
+      title: '어제 운동',
+      date: '2026-06-09',
+      status: 'completed',
+      exercises: [{ exerciseId: ex.id, sets: [{ weight: 60, reps: 8 }] }],
+    })
+    renderPage(l.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    await userEvent.click(screen.getByRole('button', { name: '예정으로 되돌리기' }))
+
+    expect(await screen.findByText('예정으로 되돌렸습니다')).toBeInTheDocument()
+    await waitFor(async () => {
+      expect((await routineLogsRepo.findById(l.id))?.status).toBe('planned')
+    })
+  })
+
+  it('저장이 실패하면 성공한 척하지 않는다', async () => {
+    const l = await seedPlanned()
+    vi.spyOn(routineLogsRepo, 'update').mockRejectedValue(new Error('디스크 꽉 찼음'))
+
+    renderPage(l.id)
+    await userEvent.click(await screen.findByLabelText('더보기'))
+    await userEvent.click(screen.getByRole('button', { name: '완료로 표시' }))
+
+    expect(await screen.findByText(/저장 실패/)).toBeInTheDocument()
+    expect(screen.queryByText('완료로 표시했습니다')).not.toBeInTheDocument()
+    vi.restoreAllMocks()
+  })
+})
+

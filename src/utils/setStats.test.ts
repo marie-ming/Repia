@@ -8,6 +8,7 @@ import {
   isSameRecord,
   isAssistedWeight,
   isRecordedSet,
+  withRecordedSetsOnly,
 } from './setStats.ts'
 
 const w = (weight: number, reps = 8): SetEntry => ({ weight, reps })
@@ -233,6 +234,64 @@ describe('formatBestSet — 무게와 횟수를 함께', () => {
   it('맨몸(0kg)은 횟수만', () => {
     expect(formatBestSet('weight_reps', w(0, 12))).toBe('12회')
     expect(bestSetLabel('weight_reps', [w(0, 8), w(0, 12)])).toBe('최고 12회')
+  })
+})
+
+// 편집 화면에는 빈 세트를 남겨두지만, 공유 이미지처럼 밖으로 나가는 곳에는 빼야 한다
+describe('withRecordedSetsOnly', () => {
+  const exMap = new Map([
+    ['w1', { metric: 'weight_reps' as const }],
+    ['a1', { metric: 'weight_reps' as const, assisted: true }],
+    ['t1', { metric: 'time' as const }],
+  ])
+
+  it('값이 안 채워진 세트만 뺀다', () => {
+    const out = withRecordedSetsOnly(
+      [{ exerciseId: 'w1', sets: [w(60, 8), w(0, 0), w(70, 6)] }],
+      exMap,
+    )
+    expect(out[0].sets).toEqual([w(60, 8), w(70, 6)])
+  })
+
+  // 계획만 세워둔 기록을 공유하면 목록이 통째로 비어버린다 — 운동은 남긴다
+  it('세트가 전부 비어도 운동 자체는 남긴다', () => {
+    const out = withRecordedSetsOnly([{ exerciseId: 'w1', sets: [w(0, 0), w(0, 0)] }], exMap)
+    expect(out).toHaveLength(1)
+    expect(out[0].sets).toEqual([])
+  })
+
+  it('맨몸 운동(0kg)은 남긴다', () => {
+    const out = withRecordedSetsOnly([{ exerciseId: 'w1', sets: [w(0, 12)] }], exMap)
+    expect(out[0].sets).toEqual([w(0, 12)])
+  })
+
+  it('보조 무게는 0을 미입력으로 본다', () => {
+    const out = withRecordedSetsOnly([{ exerciseId: 'a1', sets: [w(0, 12), w(30, 8)] }], exMap)
+    expect(out[0].sets).toEqual([w(30, 8)])
+  })
+
+  it('측정 방식별로 판단한다', () => {
+    const out = withRecordedSetsOnly([{ exerciseId: 't1', sets: [sec(0), sec(90)] }], exMap)
+    expect(out[0].sets).toEqual([sec(90)])
+  })
+
+  it('모르는 운동은 무게×횟수로 본다', () => {
+    const out = withRecordedSetsOnly([{ exerciseId: 'unknown', sets: [w(0, 0), w(60, 8)] }], exMap)
+    expect(out[0].sets).toEqual([w(60, 8)])
+  })
+
+  it('원본을 바꾸지 않는다', () => {
+    const items = [{ exerciseId: 'w1', sets: [w(60, 8), w(0, 0)] }]
+    withRecordedSetsOnly(items, exMap)
+    expect(items[0].sets).toHaveLength(2)
+  })
+
+  it('groupId 같은 다른 필드는 그대로 남긴다', () => {
+    const out = withRecordedSetsOnly(
+      [{ exerciseId: 'w1', sets: [w(0, 0), w(60, 8)], groupId: 'g1' }],
+      exMap,
+    )
+    expect(out[0].groupId).toBe('g1')
   })
 })
 

@@ -271,3 +271,48 @@ describe('RoutineLogFormPage 초안 정책 일관성', () => {
     expect(screen.getByDisplayValue('새 루틴')).toBeInTheDocument()
   })
 })
+
+// isDirty 게이트와 pending 게이트가 실제로 무엇을 막는지. 빈 폼만으로는
+// 「저장할 값이 없어서」 초안이 안 남는 것과 구분되지 않는다.
+describe('초안 게이트', () => {
+  it('루틴으로 시작해 프리필만 된 상태에서는 초안을 만들지 않는다', async () => {
+    const ex = await exercisesRepo.create({ name: '프리필운동' })
+    const tpl = await routineTemplatesRepo.create({
+      title: '프리필 루틴',
+      exercises: [{ exerciseId: ex.id, sets: [{ weight: 60, reps: 8 }] }],
+      memo: '',
+    })
+
+    renderForm(`/logs/new?fromTemplate=${tpl.id}`)
+    // 프리필된 내용이 보이는데도 손대지 않았으면 남기지 않는다.
+    // 그냥 나갔다가 다음에 뜬금없이 「작성 중이던 기록이 있어요」가 뜨는 걸 막는다.
+    await screen.findByText('프리필운동')
+    await new Promise((r) => setTimeout(r, 700))
+
+    expect(await logDraftRepo.get()).toBeNull()
+  })
+
+  // 이 상황은 isDirty 게이트가 이미 막아준다(다이얼로그가 모달이라 폼을 못 건드림).
+  // pending 게이트만 떼도 통과하는 테스트지만, 「묻는 중에 초안이 사라지지 않는다」는
+  // 성질 자체는 지켜져야 하므로 남겨둔다.
+  it('복구를 묻는 동안에는 저장된 초안을 건드리지 않는다', async () => {
+    await logDraftRepo.save({
+      title: '물어보는 중',
+      date: '2026-06-15',
+      time: '10:00',
+      status: 'planned',
+      exercises: [],
+      memo: '',
+      templateId: null,
+    })
+
+    renderForm('/logs/new')
+    await screen.findByText('작성 중이던 기록이 있어요')
+
+    // 묻는 화면이 떠 있는 동안 빈 폼이 저장돼 초안을 지워버리면,
+    // 그 사이에 앱이 닫히면 내용을 잃는다.
+    await new Promise((r) => setTimeout(r, 700))
+    expect((await logDraftRepo.get())?.form.title).toBe('물어보는 중')
+  })
+})
+

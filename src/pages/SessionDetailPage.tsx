@@ -2,8 +2,9 @@ import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { sessionsRepo } from '../db/repositories/sessions.ts'
 import { exercisesRepo } from '../db/repositories/exercises.ts'
+import { membersRepo } from '../db/repositories/members.ts'
 import type { Session, Exercise, SetEntry } from '../db/types.ts'
-import { ChevronLeftIcon, MoreIcon, PencilIcon, ShareIcon } from '../components/icons.tsx'
+import { CheckIcon, ChevronLeftIcon, MoreIcon, PencilIcon, ShareIcon } from '../components/icons.tsx'
 import { BottomSheet } from '../components/BottomSheet.tsx'
 import { useToast } from '../components/Toast.tsx'
 import { SESSION_STATUS_LABELS } from '../constants.ts'
@@ -14,6 +15,7 @@ import { prevBestByExercise } from '../utils/prevBest.ts'
 import { generateWorkoutShareImage } from '../utils/shareImage.ts'
 import { LoadError } from '../components/LoadError.tsx'
 import { useLoader } from '../utils/useLoader.ts'
+import { statusToggle } from '../utils/statusToggle.ts'
 
 export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -24,6 +26,9 @@ export function SessionDetailPage() {
   const [memberSessions, setMemberSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
+  // 회원을 지워도 수업 기록은 남는다(이름은 스냅샷). 그때 이름을 눌러도
+  // 갈 곳이 없으므로 링크를 죽여야 한다.
+  const [memberExists, setMemberExists] = useState(true)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -32,6 +37,7 @@ export function SessionDetailPage() {
     setExercises(exs)
     // 진척 비교는 같은 회원의 지난 수업하고만 한다
     setMemberSessions(s ? await sessionsRepo.findByMember(s.memberId) : [])
+    setMemberExists(s ? !!(await membersRepo.findById(s.memberId)) : true)
     setLoading(false)
   }, [id])
 
@@ -45,6 +51,19 @@ export function SessionDetailPage() {
   }, [session, memberSessions, exMap])
 
   const { error: loadError, retry } = useLoader(load)
+
+  async function handleToggleStatus() {
+    if (!session) return
+    const action = statusToggle(session.status, 'completed', 'reserved', '예약')
+    setMenuOpen(false)
+    try {
+      await sessionsRepo.update(session.id, { status: action.next })
+      showToast(action.done)
+      await load()
+    } catch (err) {
+      showToast(err instanceof Error ? `저장 실패: ${err.message}` : '저장에 실패했습니다')
+    }
+  }
 
   async function handleShare() {
     if (!session) return
@@ -97,6 +116,8 @@ export function SessionDetailPage() {
     )
   }
 
+  const statusAction = statusToggle(session.status, 'completed', 'reserved', '예약')
+
   return (
     <div className="detail">
       <header className="detail__bar">
@@ -114,13 +135,18 @@ export function SessionDetailPage() {
       </header>
 
       <div className="detail__body">
-        <button
-          type="button"
-          className="detail__title detail__title--link"
-          onClick={() => navigate(`/members/${session.memberId}`)}
-        >
-          {session.memberNameSnapshot}
-        </button>
+        {/* 지워진 회원이면 누를 수 없게 — 눌러도 「회원을 찾을 수 없습니다」로 갈 뿐이다 */}
+        {memberExists ? (
+          <button
+            type="button"
+            className="detail__title detail__title--link"
+            onClick={() => navigate(`/members/${session.memberId}`)}
+          >
+            {session.memberNameSnapshot}
+          </button>
+        ) : (
+          <h1 className="detail__title">{session.memberNameSnapshot}</h1>
+        )}
 
         <div className="session-detail__meta">
           <span className="session-detail__when">
@@ -161,6 +187,17 @@ export function SessionDetailPage() {
 
       <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} title={session.memberNameSnapshot}>
         <ul className="action-menu">
+          {/* 매번 하는 동작이라 수정 화면까지 들어가지 않고 여기서 바꾼다 */}
+          <li>
+            <button
+              type="button"
+              className={`action-menu__item action-menu__item--${statusAction.tone}`}
+              onClick={handleToggleStatus}
+            >
+              <CheckIcon className="action-menu__icon" />
+              {statusAction.label}
+            </button>
+          </li>
           <li>
             <button
               type="button"
